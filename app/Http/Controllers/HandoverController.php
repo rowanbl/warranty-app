@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreHandoverRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Resources\VehicleResource;
+use App\Models\Handover;
 use App\Services\Handover\HandoverService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,20 +20,36 @@ class HandoverController extends Controller
      */
     public function store(StoreHandoverRequest $request): JsonResponse
     {
-        $result = $this->service->submit($request->user(), $request->validated());
+        $handover = $this->service->submit($request->user(), $request->validated());
 
-        $payload = [
-            'ww_id' => $result->handover->ww_id,
-            'customer' => new UserResource($result->handover->customer),
-        ];
+        // The code is emailed to the customer, never returned here.
+        return response()->json([
+            'ww_id' => $handover->ww_id,
+            'customer' => new UserResource($handover->customer),
+        ], 201);
+    }
 
-        // Handy for demos so you don't have to dig the code out of the email.
-        // Never exposed in production.
-        if (config('app.debug')) {
-            $payload['demo_code'] = $result->code;
+    /**
+     * Check a WW ID exists and is still unclaimed, before asking for the code.
+     * Lets the app reject an unknown agreement number up front.
+     */
+    public function check(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ww_id' => ['required', 'string'],
+        ]);
+
+        $wwId = preg_replace('/\D/', '', $validated['ww_id']) ?? '';
+
+        $exists = Handover::where('ww_id', $wwId)->whereNull('claimed_at')->exists();
+
+        if (! $exists) {
+            return response()->json([
+                'message' => 'We couldn\'t find that agreement number.',
+            ], 404);
         }
 
-        return response()->json($payload, 201);
+        return response()->json(['exists' => true]);
     }
 
     /**

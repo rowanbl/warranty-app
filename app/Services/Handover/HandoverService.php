@@ -27,11 +27,11 @@ class HandoverService
      *
      * @param  array{customer: array, vehicle: array, bank: array, cover?: array, monthly_price?: float, commission?: float}  $data
      */
-    public function submit(User $dealer, array $data): HandoverResult
+    public function submit(User $dealer, array $data): Handover
     {
         $code = $this->generateCode();
 
-        $handover = DB::transaction(function () use ($dealer, $data, $code) {
+        return DB::transaction(function () use ($dealer, $data, $code) {
             $customer = $this->createCustomer($data['customer']);
 
             $this->createVehicle($customer, $data['vehicle']);
@@ -51,8 +51,6 @@ class HandoverService
 
             return $handover;
         });
-
-        return new HandoverResult($handover, $code);
     }
 
     /**

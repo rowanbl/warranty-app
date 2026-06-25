@@ -79,4 +79,22 @@ class User extends Authenticatable implements MustVerifyEmail
             AccountType::Admin => null,
         };
     }
+
+    /**
+     * Dealers and garages have to be approved by a human before they can use
+     * the app. Everyone else is fine once their email is verified.
+     */
+    public function needsApproval(): bool
+    {
+        return in_array($this->account_type, [AccountType::Dealer, AccountType::Garage], true);
+    }
+
+    public function isApproved(): bool
+    {
+        if (! $this->needsApproval()) {
+            return true;
+        }
+
+        return $this->profile()?->isApproved() ?? false;
+    }
 }

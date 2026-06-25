@@ -45,12 +45,24 @@ class UserFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (User $user) {
+            // Factory dealers/garages are approved by default so they can sign
+            // in. Use unapproved() to test the approval gate.
             match ($user->account_type) {
                 AccountType::Customer => Customer::create(['user_id' => $user->id]),
-                AccountType::Dealer => Dealer::create(['user_id' => $user->id, 'business_name' => $user->name]),
-                AccountType::Garage => Garage::create(['user_id' => $user->id, 'business_name' => $user->name]),
+                AccountType::Dealer => Dealer::create(['user_id' => $user->id, 'business_name' => $user->name, 'approved_at' => now()]),
+                AccountType::Garage => Garage::create(['user_id' => $user->id, 'business_name' => $user->name, 'approved_at' => now()]),
                 AccountType::Admin => null,
             };
+        });
+    }
+
+    /**
+     * A dealer or garage still waiting on approval.
+     */
+    public function unapproved(): static
+    {
+        return $this->afterCreating(function (User $user) {
+            $user->profile()?->update(['approved_at' => null]);
         });
     }
 

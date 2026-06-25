@@ -129,6 +129,26 @@ class HandoverTest extends TestCase
         $this->actingAs($customer)->postJson('/api/handovers', $this->payload())->assertForbidden();
     }
 
+    public function test_check_confirms_a_real_ww_id(): void
+    {
+        [$wwId] = $this->prepareHandover();
+
+        $this->postJson('/api/handovers/check', ['ww_id' => $wwId])->assertOk();
+    }
+
+    public function test_check_rejects_an_unknown_ww_id(): void
+    {
+        $this->postJson('/api/handovers/check', ['ww_id' => '9999999999'])->assertNotFound();
+    }
+
+    public function test_check_rejects_an_already_claimed_ww_id(): void
+    {
+        [$wwId, $code] = $this->prepareHandover();
+        $this->postJson('/api/handovers/redeem', ['ww_id' => $wwId, 'code' => $code]);
+
+        $this->postJson('/api/handovers/check', ['ww_id' => $wwId])->assertNotFound();
+    }
+
     public function test_a_customer_can_claim_their_prepared_account(): void
     {
         [$wwId, $code] = $this->prepareHandover();

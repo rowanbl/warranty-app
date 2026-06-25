@@ -38,6 +38,13 @@ class AuthenticatedSessionController extends Controller
             ], 403);
         }
 
+        // Dealers and garages stay locked out until a human approves them.
+        if (! $user->isApproved()) {
+            return response()->json([
+                'message' => 'Your account is awaiting approval. We\'ll email you once it\'s ready.',
+            ], 403);
+        }
+
         return response()->json([
             'token' => $user->createToken('api')->plainTextToken,
             'user' => new UserResource($user),

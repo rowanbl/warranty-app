@@ -57,6 +57,32 @@ class LoginTest extends TestCase
         $response->assertJsonValidationErrorFor('email');
     }
 
+    public function test_an_unapproved_dealer_cannot_log_in(): void
+    {
+        User::factory()->type(AccountType::Dealer)->unapproved()->create([
+            'email' => 'sales@acme.test',
+            'password' => 'secret-password',
+        ]);
+
+        $this->postJson('/api/login', [
+            'email' => 'sales@acme.test',
+            'password' => 'secret-password',
+        ])->assertForbidden();
+    }
+
+    public function test_an_approved_dealer_can_log_in(): void
+    {
+        User::factory()->type(AccountType::Dealer)->create([
+            'email' => 'sales@acme.test',
+            'password' => 'secret-password',
+        ]);
+
+        $this->postJson('/api/login', [
+            'email' => 'sales@acme.test',
+            'password' => 'secret-password',
+        ])->assertOk();
+    }
+
     public function test_an_unverified_user_cannot_log_in(): void
     {
         User::factory()->unverified()->create([

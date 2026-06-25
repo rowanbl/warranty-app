@@ -19,9 +19,9 @@ class SeedDemoAccounts extends Command
      */
     private const ACCOUNTS = [
         ['type' => AccountType::Admin, 'name' => 'Warranty Wise Staff', 'email' => 'admin@warrantywise.test'],
-        ['type' => AccountType::Dealer, 'name' => 'Demo Motors', 'email' => 'dealer@warrantywise.test', 'business_name' => 'Demo Motors', 'phone' => '01200 000000', 'address' => '1 Forecourt Way, Burnley'],
-        ['type' => AccountType::Garage, 'name' => 'Demo Garage', 'email' => 'garage@warrantywise.test', 'business_name' => 'Demo Garage', 'phone' => '01200 111111', 'address' => '2 Workshop Road, Burnley'],
-        ['type' => AccountType::Customer, 'name' => 'Rowan Abbott', 'email' => 'customer@warrantywise.test', 'phone' => '07700 900421', 'address' => 'The Valley Works, Hapton'],
+        ['type' => AccountType::Dealer, 'name' => 'Demo Motors', 'email' => 'dealer@warrantywise.test', 'business_name' => 'Demo Motors', 'phone' => '01234 567890', 'address' => '1 High Street, London'],
+        ['type' => AccountType::Garage, 'name' => 'Demo Garage', 'email' => 'garage@warrantywise.test', 'business_name' => 'Demo Garage', 'phone' => '01234 567891', 'address' => '2 High Street, London'],
+        ['type' => AccountType::Customer, 'name' => 'John Doe', 'email' => 'customer@warrantywise.test', 'phone' => '07700 900000', 'address' => '3 High Street, London'],
     ];
 
     public function handle(): int
@@ -85,6 +85,8 @@ class SeedDemoAccounts extends Command
 
         if (isset($account['business_name'])) {
             $attributes['business_name'] = $account['business_name'];
+            // Demo dealers/garages are pre-approved so they're ready to test.
+            $attributes['approved_at'] = now();
         }
 
         // Empty match array scopes to this user, so re-running updates in place.

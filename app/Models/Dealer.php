@@ -12,6 +12,16 @@ class Dealer extends Model
 
     protected $hidden = ['id', 'user_id', 'created_at', 'updated_at'];
 
+    protected function casts(): array
+    {
+        return ['approved_at' => 'datetime'];
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->approved_at !== null;
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
