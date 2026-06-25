@@ -1,0 +1,6 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Send everything into the public/ folder without showing it in the URL.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
