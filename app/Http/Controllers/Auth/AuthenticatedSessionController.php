@@ -38,13 +38,9 @@ class AuthenticatedSessionController extends Controller
             ], 403);
         }
 
-        // Dealers and garages stay locked out until a human approves them.
-        if (! $user->isApproved()) {
-            return response()->json([
-                'message' => 'Your account is awaiting approval. We\'ll email you once it\'s ready.',
-            ], 403);
-        }
-
+        // Dealers/garages can sign in before approval so the app remembers them
+        // and shows an "awaiting approval" screen. The `approved` flag on the
+        // user tells the app whether to open the app or hold them there.
         return response()->json([
             'token' => $user->createToken('api')->plainTextToken,
             'user' => new UserResource($user),

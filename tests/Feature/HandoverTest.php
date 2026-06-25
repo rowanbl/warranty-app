@@ -129,6 +129,13 @@ class HandoverTest extends TestCase
         $this->actingAs($customer)->postJson('/api/handovers', $this->payload())->assertForbidden();
     }
 
+    public function test_an_unapproved_dealer_cannot_set_handovers_up(): void
+    {
+        $dealer = User::factory()->type(AccountType::Dealer)->unapproved()->create();
+
+        $this->actingAs($dealer)->postJson('/api/handovers', $this->payload())->assertForbidden();
+    }
+
     public function test_check_confirms_a_real_ww_id(): void
     {
         [$wwId] = $this->prepareHandover();

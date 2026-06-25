@@ -63,14 +63,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:6,1');
 
-    // Verified only. The rest of the app hangs off here.
+    // Verified only. /me stays open so an awaiting dealer can poll their status.
     Route::middleware('verified')->group(function () {
         Route::get('/me', [AuthenticatedSessionController::class, 'current']);
 
-        // Look a reg up for real and save it to the account.
-        Route::post('/vehicles/lookup', [VehicleLookupController::class, 'store']);
+        // Approved only. Unapproved dealers/garages get a 403, so the token is
+        // powerless until a human approves them.
+        Route::middleware('approved')->group(function () {
+            // Look a reg up for real and save it to the account.
+            Route::post('/vehicles/lookup', [VehicleLookupController::class, 'store']);
 
-        // Dealer sets a customer's account up.
-        Route::post('/handovers', [HandoverController::class, 'store']);
+            // Dealer sets a customer's account up.
+            Route::post('/handovers', [HandoverController::class, 'store']);
+        });
     });
 });

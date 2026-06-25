@@ -25,6 +25,9 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'account_type' => $this->account_type->value,
             'email_verified' => $this->hasVerifiedEmail(),
+            // Dealers/garages need approval; everyone else is always approved.
+            // The app holds unapproved accounts on an "awaiting approval" screen.
+            'approved' => $this->isApproved(),
             // The type-specific bits (phone, address, business name) live here,
             // joined from the matching profile table.
             'profile' => $this->profile(),

@@ -57,20 +57,22 @@ class LoginTest extends TestCase
         $response->assertJsonValidationErrorFor('email');
     }
 
-    public function test_an_unapproved_dealer_cannot_log_in(): void
+    public function test_an_unapproved_dealer_signs_in_but_is_flagged_unapproved(): void
     {
         User::factory()->type(AccountType::Dealer)->unapproved()->create([
             'email' => 'sales@acme.test',
             'password' => 'secret-password',
         ]);
 
+        // They sign in (so the app remembers them) but the app holds them on the
+        // awaiting-approval screen until approved is true.
         $this->postJson('/api/login', [
             'email' => 'sales@acme.test',
             'password' => 'secret-password',
-        ])->assertForbidden();
+        ])->assertOk()->assertJsonPath('user.approved', false);
     }
 
-    public function test_an_approved_dealer_can_log_in(): void
+    public function test_an_approved_dealer_is_flagged_approved(): void
     {
         User::factory()->type(AccountType::Dealer)->create([
             'email' => 'sales@acme.test',
@@ -80,7 +82,17 @@ class LoginTest extends TestCase
         $this->postJson('/api/login', [
             'email' => 'sales@acme.test',
             'password' => 'secret-password',
-        ])->assertOk();
+        ])->assertOk()->assertJsonPath('user.approved', true);
+    }
+
+    public function test_customers_are_always_approved(): void
+    {
+        User::factory()->create(['email' => 'rowan@email.test', 'password' => 'secret-password']);
+
+        $this->postJson('/api/login', [
+            'email' => 'rowan@email.test',
+            'password' => 'secret-password',
+        ])->assertOk()->assertJsonPath('user.approved', true);
     }
 
     public function test_an_unverified_user_cannot_log_in(): void

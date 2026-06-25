@@ -12,18 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         // Dealers and garages can't use the app until a human approves them.
-        // Null means pending. Customers don't need this.
-        foreach (['dealers', 'garages'] as $table) {
-            Schema::table($table, function (Blueprint $table) {
-                $table->timestamp('approved_at')->nullable()->after('business_name');
+        // Null means pending. Customers don't need this. dateTime (not timestamp)
+        // to avoid MySQL's timestamp range/precision quirks.
+        foreach (['dealers', 'garages'] as $name) {
+            Schema::table($name, function (Blueprint $table) {
+                $table->dateTime('approved_at')->nullable()->after('business_name');
             });
         }
     }
 
     public function down(): void
     {
-        foreach (['dealers', 'garages'] as $table) {
-            Schema::table($table, function (Blueprint $table) {
+        foreach (['dealers', 'garages'] as $name) {
+            Schema::table($name, function (Blueprint $table) {
                 $table->dropColumn('approved_at');
             });
         }
