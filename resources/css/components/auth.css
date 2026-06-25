@@ -1,0 +1,37 @@
+/* Logo above the card, both centred in a column on the navy background. */
+.auth-shell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-6);
+}
+
+/* The sign-in and welcome cards. A narrow centred card. */
+.auth-card {
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+}
+
+.auth-card .subheading {
+    margin-bottom: var(--space-5);
+}
+
+/* Small pill that names the account type. */
+.chip {
+    display: inline-block;
+    margin-left: var(--space-2);
+    padding: 2px var(--space-3);
+    border-radius: var(--radius);
+    background: var(--navy);
+    color: var(--on-dark);
+    font-size: var(--text-small);
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+/* Muted secondary text on a light card. */
+.text-muted-ink {
+    color: var(--ink-muted);
+    margin: 0 0 var(--space-5);
+}

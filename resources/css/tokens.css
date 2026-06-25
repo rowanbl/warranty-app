@@ -1,0 +1,61 @@
+/* Every design token lives here. Colours, type, spacing, radius, motion. The
+   palette is Warranty Wise: navy and orange, taken from the site and the iOS
+   app. Change a value here and it flows through the whole site. */
+:root {
+    /* Brand */
+    --navy: #0a2540;
+    --navy-dark: #06182b;
+    --navy-soft: #13314f;
+    --orange: #f26321;
+    --orange-deep: #d8431f;
+    --teal: #03a4aa;
+    --teal-deep: #02888d;
+    --gold: #f2b544;
+
+    /* Semantic */
+    --success: #2fa866;
+    --warning: #e8941a;
+    --danger: #d6453c;
+
+    /* Surfaces and text */
+    --page: var(--navy);
+    --surface: #ffffff;
+    --ink: #0a2540;
+    --ink-muted: #5b6b7c;
+    --border: #e2e8f0;
+    --on-dark: #ffffff;
+    --on-dark-muted: rgba(255, 255, 255, 0.72);
+    --border-on-dark: rgba(255, 255, 255, 0.16);
+
+    /* Accent leads on primary actions */
+    --accent: var(--orange);
+    --accent-strong: var(--orange-deep);
+
+    /* Type. Four sizes, no more. */
+    --font-sans: 'Noto Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --text-small: 0.8125rem;
+    --text-body: 1rem;
+    --text-subheading: 1.375rem;
+    --text-heading: 2rem;
+
+    /* Spacing scale */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+
+    /* Layout */
+    --container-max: 1100px;
+    --gutter: 24px;
+
+    /* Radius. Pills for controls, soft round for cards. */
+    --radius: 999px;
+    --radius-card: 20px;
+
+    /* Motion */
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --dur: 200ms;
+}

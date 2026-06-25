@@ -1,0 +1,7 @@
+/* The wordmark sits on the navy background, above the card. */
+.logo {
+    display: block;
+    width: 220px;
+    max-width: 70vw;
+    height: auto;
+}

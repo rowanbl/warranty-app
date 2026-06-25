@@ -1,0 +1,20 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite",
+        "type-check": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@preact/preset-vite": "^2.10.5",
+        "concurrently": "^9.0.1",
+        "laravel-vite-plugin": "^3.1",
+        "typescript": "^6.0.3",
+        "vite": "^8.0.0"
+    },
+    "dependencies": {
+        "preact": "^10.29.2"
+    }
+}
