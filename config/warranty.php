@@ -9,6 +9,10 @@ return [
     // Fraction off when the customer pays the whole term upfront.
     'upfront_discount' => 0.10,
 
+    // Defaults for the agreement created when a warranty is taken out.
+    'default_tier' => 'gold',
+    'claim_limit' => 7500,
+
     // Minimum term first. Longer term, lower monthly.
     'terms' => [
         ['months' => 12, 'monthly' => 49.99],

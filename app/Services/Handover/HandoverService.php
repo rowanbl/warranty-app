@@ -5,6 +5,7 @@ namespace App\Services\Handover;
 use App\Enums\AccountType;
 use App\Models\Handover;
 use App\Models\User;
+use App\Models\Vehicle;
 use App\Notifications\HandoverCodeNotification;
 use App\Services\Vehicle\VehicleLookupService;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +35,7 @@ class HandoverService
         return DB::transaction(function () use ($dealer, $data, $code) {
             $customer = $this->createCustomer($data['customer']);
 
-            $this->createVehicle($customer, $data['vehicle']);
+            $vehicle = $this->createVehicle($customer, $data['vehicle']);
             $this->createBankDetail($customer, $data['bank']);
 
             $handover = Handover::create([
@@ -46,6 +47,10 @@ class HandoverService
                 'monthly_price' => $data['monthly_price'] ?? 0,
                 'commission' => $data['commission'] ?? 0,
             ]);
+
+            if (isset($data['warranty'])) {
+                $this->createAgreement($customer, $vehicle, $handover->ww_id, $data['warranty']);
+            }
 
             $customer->notify(new HandoverCodeNotification($handover->ww_id, $code));
 
@@ -101,7 +106,7 @@ class HandoverService
     /**
      * @param  array{registration: string, mileage?: int, insurance_renewal?: string, last_service?: string}  $details
      */
-    private function createVehicle(User $customer, array $details): void
+    private function createVehicle(User $customer, array $details): Vehicle
     {
         $found = $this->lookup->lookup($details['registration']);
 
@@ -113,7 +118,29 @@ class HandoverService
         $attributes['insurance_renewal'] = $details['insurance_renewal'] ?? null;
         $attributes['last_service'] = $details['last_service'] ?? null;
 
-        $customer->vehicles()->create($attributes);
+        return $customer->vehicles()->create($attributes);
+    }
+
+    /**
+     * Create the customer's warranty agreement. Its number is the WW ID, so the
+     * agreement number and the handover code are one and the same.
+     *
+     * @param  array{term_months: int, monthly: float}  $warranty
+     */
+    private function createAgreement(User $customer, Vehicle $vehicle, string $wwId, array $warranty): void
+    {
+        $months = (int) $warranty['term_months'];
+
+        $customer->agreements()->create([
+            'vehicle_id' => $vehicle->id,
+            'agreement_number' => $wwId,
+            'tier' => config('warranty.default_tier'),
+            'status' => 'active',
+            'start_date' => now()->toDateString(),
+            'expiry_date' => now()->addMonths($months)->toDateString(),
+            'claim_limit' => config('warranty.claim_limit'),
+            'monthly_price' => $warranty['monthly'],
+        ]);
     }
 
     /**

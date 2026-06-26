@@ -41,4 +41,32 @@ class WarrantyController extends Controller
             'terms' => $terms,
         ]);
     }
+
+    /**
+     * The signed-in customer's current warranty agreement, from the DB. Returns
+     * 404 if they don't have one yet.
+     */
+    public function current(Request $request): JsonResponse
+    {
+        $agreement = $request->user()->agreements()->latest()->first();
+
+        if ($agreement === null) {
+            return response()->json(['message' => 'No warranty on this account yet.'], 404);
+        }
+
+        $number = $agreement->agreement_number;
+        $formatted = preg_match('/^\d{10}$/', $number)
+            ? 'WW-'.substr($number, 0, 4).'-'.substr($number, 4)
+            : $number;
+
+        return response()->json([
+            'agreementNumber' => $formatted,
+            'tier' => ucfirst($agreement->tier->value),
+            'isActive' => $agreement->status === 'active',
+            'startDate' => $agreement->start_date->toDateString(),
+            'expiryDate' => $agreement->expiry_date->toDateString(),
+            'claimLimit' => $agreement->claim_limit,
+            'monthlyPrice' => (float) $agreement->monthly_price,
+        ]);
+    }
 }

@@ -41,6 +41,11 @@ class StoreHandoverRequest extends FormRequest
             'vehicle.insurance_renewal' => ['nullable', 'date'],
             'vehicle.last_service' => ['nullable', 'date'],
 
+            // The warranty the customer is taking out. Becomes their agreement.
+            'warranty' => ['nullable', 'array'],
+            'warranty.term_months' => ['required_with:warranty', 'integer', 'min:1'],
+            'warranty.monthly' => ['required_with:warranty', 'numeric', 'min:0'],
+
             'cover' => ['nullable', 'array'],
             'cover.*.name' => ['required', 'string', 'max:255'],
             'cover.*.price' => ['required', 'numeric', 'min:0'],

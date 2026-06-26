@@ -68,11 +68,6 @@ class DemoContentController extends Controller
         return response()->json(DemoContent::get('claims'));
     }
 
-    public function warranty(): JsonResponse
-    {
-        return response()->json(DemoContent::get('warranty'));
-    }
-
     public function createBooking(Request $request): JsonResponse
     {
         $validated = $request->validate([

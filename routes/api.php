@@ -53,7 +53,6 @@ Route::post('/sanity-check', [DemoContentController::class, 'sanityCheck']);
 Route::post('/bookings', [DemoContentController::class, 'createBooking']);
 Route::get('/repair-timeline', [DemoContentController::class, 'repairTimeline']);
 Route::get('/fuel-stations', [DemoContentController::class, 'fuelStations']);
-Route::get('/warranty', [DemoContentController::class, 'warranty']);
 Route::get('/admin/kpis', [DemoContentController::class, 'kpis']);
 Route::get('/admin/claims', [DemoContentController::class, 'claims']);
 
@@ -66,6 +65,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Verified only. /me stays open so an awaiting dealer can poll their status.
     Route::middleware('verified')->group(function () {
         Route::get('/me', [AuthenticatedSessionController::class, 'current']);
+
+        // The customer's real warranty agreement, from the DB.
+        Route::get('/warranty', [WarrantyController::class, 'current']);
 
         // Approved only. Unapproved dealers/garages get a 403, so the token is
         // powerless until a human approves them.

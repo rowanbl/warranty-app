@@ -28,13 +28,6 @@ class DemoContentTest extends TestCase
             ->assertJsonStructure(['likelyFault', 'severity', 'severityColor', 'confidence']);
     }
 
-    public function test_warranty_returns_the_agreement(): void
-    {
-        $this->getJson('/api/warranty')
-            ->assertOk()
-            ->assertJsonStructure(['agreementNumber', 'tier', 'startDate', 'expiryDate']);
-    }
-
     public function test_booking_echoes_a_confirmation(): void
     {
         $this->postJson('/api/bookings', ['date' => 'Tue 7 Jul', 'time' => '08:00 to 10:00'])
