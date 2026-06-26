@@ -2,6 +2,7 @@
 
 namespace App\Services\Fuel;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -157,9 +158,15 @@ class FuelFinderService
             return [];
         }
 
-        $response = Http::withToken($token)
-            ->acceptJson()
-            ->get(config('fuel.feed_url'));
+        try {
+            $response = Http::withToken($token)
+                ->acceptJson()
+                ->get(config('fuel.feed_url'));
+        } catch (ConnectionException $e) {
+            // Host unreachable (DNS, egress, downtime). Show no stations rather
+            // than 500 the whole request.
+            return [];
+        }
 
         if (! $response->successful()) {
             return [];
@@ -181,12 +188,17 @@ class FuelFinderService
             return null;
         }
 
-        $response = Http::asForm()->post(config('fuel.token_url'), [
-            'grant_type' => 'client_credentials',
-            'client_id' => $clientId,
-            'client_secret' => $clientSecret,
-            'scope' => config('fuel.scope'),
-        ]);
+        try {
+            $response = Http::asForm()->post(config('fuel.token_url'), [
+                'grant_type' => 'client_credentials',
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
+                'scope' => config('fuel.scope'),
+            ]);
+        } catch (ConnectionException $e) {
+            // Token host unreachable: no token, so the caller shows no stations.
+            return null;
+        }
 
         return $response->successful() ? $response->json('access_token') : null;
     }

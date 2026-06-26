@@ -9,6 +9,12 @@
 #
 set -euo pipefail
 
+# Never block on a prompt: GitHub Actions runs this headless over SSH, so any
+# tool that stops to ask a question would hang the whole deploy. Make git fail
+# instead of asking for credentials, and tell composer not to ask anything.
+export GIT_TERMINAL_PROMPT=0
+export COMPOSER_NO_INTERACTION=1
+
 # This host can't put php/composer/node on the PATH, so spell them out here.
 PHP="/opt/alt/php85/usr/bin/php"
 COMPOSER="$PHP /usr/local/bin/composer2.phar"
@@ -42,6 +48,6 @@ echo "→ Installing PHP dependencies"
 $COMPOSER install --no-interaction
 
 echo "→ Running migrations"
-$PHP artisan migrate --force
+$PHP artisan migrate --force --no-interaction
 
 echo "✓ Deploy finished"

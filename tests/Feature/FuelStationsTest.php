@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -77,6 +78,19 @@ class FuelStationsTest extends TestCase
         $this->getJson('/api/fuel-stations?address='.urlencode('1 High St, Burnley'))
             ->assertOk()
             ->assertJsonPath('origin.source', 'address');
+    }
+
+    public function test_an_unreachable_feed_degrades_to_no_stations_not_a_500(): void
+    {
+        // The Fuel Finder host being unreachable (DNS, egress, downtime) must
+        // come back as no stations, not crash the whole request with a 500.
+        Http::fake([
+            'api.fuelfinder.service.gov.uk/*' => fn () => throw new ConnectionException('Could not resolve host'),
+        ]);
+
+        $this->getJson('/api/fuel-stations?lat='.self::BURNLEY_LAT.'&lng='.self::BURNLEY_LNG)
+            ->assertOk()
+            ->assertJsonPath('stations', []);
     }
 
     public function test_it_asks_for_a_location_when_none_is_given(): void
