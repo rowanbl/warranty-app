@@ -7,6 +7,7 @@ use App\Models\Address;
 use App\Models\Agreement;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Notifications\AgreementAddedNotification;
 use App\Services\Vehicle\VehicleLookupService;
 use App\Support\WarrantyPlan;
 use Illuminate\Support\Facades\DB;
@@ -34,15 +35,23 @@ class DealerService
     {
         return DB::transaction(function () use ($data) {
             $customer = $this->resolveCustomer($data['customer']);
+            // Eloquent flags this true only when resolveCustomer just created the
+            // account, so it cleanly tells a fresh customer from a returning one.
+            $isNewAccount = $customer->wasRecentlyCreated;
+
             $vehicle = $this->createVehicle($customer, $data['vehicle']);
             $address = $this->resolveAddress($customer, $data['customer']['address'] ?? null);
             $agreement = $this->createAgreement($customer, $vehicle, $address, $data['warranty']);
             $this->createBankDetail($agreement, $data['bank']);
 
-            // Email the magic link to anyone who still needs to verify, which is
-            // every fresh account and any returning customer who never did.
-            if (! $customer->hasVerifiedEmail()) {
+            if ($isNewAccount) {
+                // Fresh account: the usual verify-your-email magic link.
                 $customer->sendEmailVerificationNotification();
+            } else {
+                // Existing account gaining another car and Direct Debit. Tell them
+                // plainly, so a mistyped email can't quietly attach a car to the
+                // wrong person.
+                $customer->notify(new AgreementAddedNotification($agreement));
             }
 
             return $agreement;

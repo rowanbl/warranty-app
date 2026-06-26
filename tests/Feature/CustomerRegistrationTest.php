@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\AccountType;
 use App\Models\BankDetail;
 use App\Models\User;
+use App\Notifications\AgreementAddedNotification;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -77,6 +78,29 @@ class CustomerRegistrationTest extends TestCase
         // The first address stays the main one; the second is just stored.
         $this->assertSame('1 Test St', $customer->primaryAddress->line1);
         $this->assertSame(2, $customer->addresses()->count());
+    }
+
+    public function test_an_existing_account_is_told_a_car_was_added_not_a_new_verify_link(): void
+    {
+        $this->fakeLookup();
+        Notification::fake();
+
+        // First registration creates the account (and sends a verify link).
+        $this->actingAs($this->dealer())->postJson('/api/customers', $this->payload())->assertCreated();
+
+        // Reset so we only judge the second registration's email.
+        Notification::fake();
+
+        $second = $this->payload();
+        $second['vehicle']['registration'] = 'AB12CDE';
+
+        $this->actingAs($this->dealer())->postJson('/api/customers', $second)->assertCreated();
+
+        $customer = User::whereEmail('rowan@email.test')->firstOrFail();
+        // The existing customer is told a car was added, not sent a fresh verify
+        // link, so a mistyped email can't quietly attach a car to the wrong person.
+        Notification::assertSentTo($customer, AgreementAddedNotification::class);
+        Notification::assertNotSentTo($customer, VerifyEmail::class);
     }
 
     public function test_an_email_on_a_non_customer_account_is_rejected(): void
