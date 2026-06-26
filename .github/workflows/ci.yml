@@ -1,0 +1,72 @@
+name: CI & Deploy
+
+# Assumes the repo root is this Laravel app. If you commit the whole monorepo,
+# move .github/ to the repo root and add a `defaults.run.working-directory`.
+#
+# Runners are WarpBuild (cheaper than GitHub-hosted). The label below must match
+# a runner you enabled in your WarpBuild dashboard — bump "-2x" to "-4x"/"-8x" for
+# faster parallel tests. To fall back to GitHub-hosted, use `ubuntu-latest`.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: PHP tests
+    runs-on: warp-ubuntu-latest-x64-2x
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      # Parallel + the in-memory sqlite already in phpunit.xml: fast and cheap.
+      - run: php artisan test --parallel
+
+  frontend:
+    name: Frontend build & types
+    runs-on: warp-ubuntu-latest-x64-2x
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'   # match the server
+          cache: npm
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run build
+
+  deploy:
+    name: Deploy to production
+    needs: [test, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: warp-ubuntu-latest-x64-2x
+    # Queue deploys; never run two at once or cancel one mid-flight.
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Trust the server host key
+        run: ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+      # The server pulls + builds + migrates itself — this just kicks it off.
+      - name: Run the deploy script over SSH
+        run: |
+          ssh -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "cd '${{ secrets.DEPLOY_PATH }}' && bash deploy/deploy.sh"

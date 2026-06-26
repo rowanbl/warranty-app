@@ -6,7 +6,6 @@ use App\Enums\AccountType;
 use App\Models\Agreement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -37,7 +36,7 @@ class WarrantyTest extends TestCase
         $this->getJson('/api/warranty')->assertUnauthorized();
     }
 
-    public function test_a_handover_creates_the_warranty_agreement(): void
+    public function test_registering_a_customer_creates_the_warranty_agreement(): void
     {
         Notification::fake();
         Http::fake([
@@ -48,7 +47,7 @@ class WarrantyTest extends TestCase
 
         $dealer = User::factory()->type(AccountType::Dealer)->create();
 
-        $this->actingAs($dealer)->postJson('/api/handovers', [
+        $this->actingAs($dealer)->postJson('/api/customers', [
             'customer' => ['name' => 'John Doe', 'email' => 'john@email.test'],
             'vehicle' => ['registration' => 'LV68KXR'],
             'warranty' => ['term_months' => 36, 'monthly' => 39.99],
@@ -56,12 +55,9 @@ class WarrantyTest extends TestCase
         ])->assertCreated();
 
         $customer = User::whereEmail('john@email.test')->firstOrFail();
-        $wwId = DB::table('handovers')->where('customer_id', $customer->id)->value('ww_id');
 
-        // The agreement number is the WW ID, so they're one and the same.
         $this->assertDatabaseHas('agreements', [
             'user_id' => $customer->id,
-            'agreement_number' => $wwId,
             'monthly_price' => 39.99,
         ]);
     }

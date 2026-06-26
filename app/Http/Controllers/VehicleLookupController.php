@@ -38,6 +38,24 @@ class VehicleLookupController extends Controller
     }
 
     /**
+     * The signed-in customer's saved car, straight from their account (no live
+     * lookup). The dealer saved it at registration, so the app shows the real
+     * saved vehicle instead of re-looking it up every time. 404 if they have none.
+     */
+    public function current(Request $request): JsonResponse
+    {
+        $vehicle = $request->user()->vehicles()->latest()->first();
+
+        if ($vehicle === null) {
+            return response()->json(['message' => 'No vehicle on this account yet.'], 404);
+        }
+
+        return response()->json([
+            'vehicle' => new VehicleResource($vehicle),
+        ]);
+    }
+
+    /**
      * Look a registration up without signing in or saving anything. Used during
      * onboarding to preview the car before there's an account to attach it to.
      * Public, so it's throttled to keep the paid lookup from being abused.

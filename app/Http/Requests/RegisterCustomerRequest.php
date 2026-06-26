@@ -7,10 +7,10 @@ use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreHandoverRequest extends FormRequest
+class RegisterCustomerRequest extends FormRequest
 {
     /**
-     * Only dealers, garages and staff set customers up.
+     * Only dealers, garages and staff register customers.
      */
     public function authorize(): bool
     {
@@ -41,23 +41,16 @@ class StoreHandoverRequest extends FormRequest
             'vehicle.insurance_renewal' => ['nullable', 'date'],
             'vehicle.last_service' => ['nullable', 'date'],
 
-            // The warranty the customer is taking out. Becomes their agreement.
-            'warranty' => ['nullable', 'array'],
-            'warranty.term_months' => ['required_with:warranty', 'integer', 'min:1'],
-            'warranty.monthly' => ['required_with:warranty', 'numeric', 'min:0'],
-
-            'cover' => ['nullable', 'array'],
-            'cover.*.name' => ['required', 'string', 'max:255'],
-            'cover.*.price' => ['required', 'numeric', 'min:0'],
-            'cover.*.period' => ['nullable', 'string', 'max:50'],
+            // The warranty is the product, and it becomes the customer's agreement
+            // (and login number), so it's required.
+            'warranty' => ['required', 'array'],
+            'warranty.term_months' => ['required', 'integer', 'min:1'],
+            'warranty.monthly' => ['required', 'numeric', 'min:0'],
 
             'bank' => ['required', 'array'],
             'bank.account_name' => ['required', 'string', 'max:255'],
             'bank.sort_code' => ['required', 'string', 'max:10'],
             'bank.account_number' => ['required', 'string', 'max:20'],
-
-            'monthly_price' => ['nullable', 'numeric', 'min:0'],
-            'commission' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

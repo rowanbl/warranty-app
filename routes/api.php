@@ -1,13 +1,14 @@
 <?php
 
+use App\Http\Controllers\Auth\AgreementLoginController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailLoginController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Dealer\CustomerController;
 use App\Http\Controllers\DemoContentController;
-use App\Http\Controllers\HandoverController;
 use App\Http\Controllers\VehicleLookupController;
 use App\Http\Controllers\WarrantyController;
 use Illuminate\Support\Facades\Route;
@@ -29,10 +30,12 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
     ->middleware('signed')
     ->name('verification.verify');
 
-// A customer claims the account their dealer prepared. Public: they're not
-// signed in yet, the WW ID and code are what prove who they are.
-Route::post('/handovers/check', [HandoverController::class, 'check'])->middleware('throttle:20,1');
-Route::post('/handovers/redeem', [HandoverController::class, 'redeem']);
+// Passwordless sign-in by agreement number. Public: they're not signed in yet,
+// the number plus an emailed code are what prove who they are. The device then
+// remembers them locally (PIN / Face ID), so this is just the first sign-in.
+Route::post('/login/agreement/request', [AgreementLoginController::class, 'request'])->middleware('throttle:20,1');
+Route::post('/login/agreement/verify', [AgreementLoginController::class, 'verify']);
+Route::post('/login/agreement/resend-verification', [AgreementLoginController::class, 'resendVerification'])->middleware('throttle:6,1');
 
 // Preview a reg during onboarding, before there's an account. Public but
 // throttled, since each call hits the paid DVSA/DVLA lookup.
@@ -69,14 +72,17 @@ Route::middleware('auth:sanctum')->group(function () {
         // The customer's real warranty agreement, from the DB.
         Route::get('/warranty', [WarrantyController::class, 'current']);
 
+        // The customer's saved car, straight from their account (no live lookup).
+        Route::get('/vehicle', [VehicleLookupController::class, 'current']);
+
         // Approved only. Unapproved dealers/garages get a 403, so the token is
         // powerless until a human approves them.
         Route::middleware('approved')->group(function () {
             // Look a reg up for real and save it to the account.
             Route::post('/vehicles/lookup', [VehicleLookupController::class, 'store']);
 
-            // Dealer sets a customer's account up.
-            Route::post('/handovers', [HandoverController::class, 'store']);
+            // A dealer registers a customer's whole account.
+            Route::post('/customers', [CustomerController::class, 'store']);
         });
     });
 });
