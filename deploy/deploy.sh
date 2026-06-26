@@ -21,10 +21,20 @@ echo "→ Pulling latest code"
 git pull --ff-only
 
 echo "→ Building the frontend (Node $NODE_VERSION via nvm)"
-export NVM_DIR="$HOME/.nvm"
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] || { echo "✗ nvm not found at $NVM_DIR/nvm.sh" >&2; exit 1; }
+
+# nvm isn't safe under `set -e`/`set -u` (it reads unset vars and some commands
+# return non-zero), so relax strict mode just while we load and select Node.
+set +eu
 # shellcheck disable=SC1091
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-nvm use "$NODE_VERSION" >/dev/null 2>&1 || nvm install "$NODE_VERSION"
+. "$NVM_DIR/nvm.sh"
+nvm install "$NODE_VERSION"   # installs if missing, otherwise just selects it
+set -eu
+
+command -v node >/dev/null || { echo "✗ Node not available after nvm" >&2; exit 1; }
+echo "  using $(node --version)"
+
 npm install
 npm run build
 

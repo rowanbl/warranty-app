@@ -42,8 +42,9 @@ jobs:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
       - name: Trust the server host key
         run: ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
-      # The server pulls + builds + migrates itself — this just kicks it off.
+      # Pull first so the LATEST deploy.sh runs (bash loads the script into memory
+      # at start, so a pull from inside it wouldn't take effect until next time).
       - name: Run the deploy script over SSH
         run: |
           ssh -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "cd '${{ secrets.DEPLOY_PATH }}' && bash deploy/deploy.sh"
+            "cd '${{ secrets.DEPLOY_PATH }}' && git pull --ff-only && bash deploy/deploy.sh"
