@@ -15,8 +15,11 @@ class WarrantyController extends Controller
      */
     public function quote(Request $request, VehicleLookupService $lookup): JsonResponse
     {
+        // Mileage comes through so pricing can vary by it later. For now the
+        // prices are the same, but the make/model and mileage are all here.
         $validated = $request->validate([
             'registration' => ['required', 'string', 'max:10'],
+            'mileage' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $vehicle = $lookup->lookup($validated['registration']);
