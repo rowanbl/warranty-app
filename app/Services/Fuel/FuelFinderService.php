@@ -4,6 +4,8 @@ namespace App\Services\Fuel;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Finds nearby fuel stations and their live prices from the government Fuel
@@ -21,6 +23,11 @@ class FuelFinderService
     // The standard fuel grade. We flag the cheapest and sort by price against
     // whichever grade the caller asks for, defaulting to standard unleaded.
     public const DEFAULT_GRADE = 'E10';
+
+    // Why the feed came back empty, if it did. Stays null on a clean run. The
+    // controller surfaces it in the response while the app is in debug, so an
+    // empty result can be told apart from a feed that's down or misconfigured.
+    public ?string $lastError = null;
 
     /**
      * Stations within the radius, nearest or cheapest first, the cheapest one
@@ -165,11 +172,11 @@ class FuelFinderService
         } catch (ConnectionException $e) {
             // Host unreachable (DNS, egress, downtime). Show no stations rather
             // than 500 the whole request.
-            return [];
+            return $this->fail('feed host unreachable: '.$e->getMessage());
         }
 
         if (! $response->successful()) {
-            return [];
+            return $this->fail('feed call failed: HTTP '.$response->status().' '.Str::limit($response->body(), 300));
         }
 
         return $response->json('stations') ?? [];
@@ -185,6 +192,8 @@ class FuelFinderService
         $clientSecret = config('fuel.client_secret');
 
         if (empty($clientId) || empty($clientSecret)) {
+            $this->fail('Fuel Finder credentials are not configured (client id/secret empty)');
+
             return null;
         }
 
@@ -197,10 +206,41 @@ class FuelFinderService
             ]);
         } catch (ConnectionException $e) {
             // Token host unreachable: no token, so the caller shows no stations.
+            $this->fail('token host unreachable: '.$e->getMessage());
+
             return null;
         }
 
-        return $response->successful() ? $response->json('access_token') : null;
+        if (! $response->successful()) {
+            $this->fail('token call failed: HTTP '.$response->status().' '.Str::limit($response->body(), 300));
+
+            return null;
+        }
+
+        $token = $response->json('access_token');
+
+        if (empty($token)) {
+            $this->fail('token call succeeded but returned no access_token');
+
+            return null;
+        }
+
+        return $token;
+    }
+
+    /**
+     * Record why the feed came back empty, and log it, then return an empty list
+     * for the caller to hand back. One place so the reason is captured the same
+     * way wherever it happens.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function fail(string $reason): array
+    {
+        $this->lastError = $reason;
+        Log::warning('Fuel Finder feed empty: '.$reason);
+
+        return [];
     }
 
     /**
