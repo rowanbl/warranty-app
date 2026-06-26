@@ -25,7 +25,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          coverage: none
+          coverage: pcov   # fast coverage driver
       - uses: actions/cache@v4
         with:
           path: ~/.cache/composer/files
@@ -34,7 +34,9 @@ jobs:
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: cp .env.example .env && php artisan key:generate
       # Parallel + the in-memory sqlite already in phpunit.xml: fast and cheap.
-      - run: php artisan test --parallel
+      # The coverage table prints at the end. Once you've seen your %, turn it into
+      # a gate by appending e.g. `--min=75` (the job then fails below that).
+      - run: php artisan test --parallel --coverage
 
   frontend:
     name: Frontend build & types
@@ -48,6 +50,34 @@ jobs:
       - run: npm ci
       - run: npm run type-check
       - run: npm run build
+
+  mutation:
+    name: Mutation testing
+    runs-on: warp-ubuntu-latest-x64-2x
+    if: github.event_name == 'pull_request'
+    # Report-only for now: it annotates the PR but never blocks merge. Once you're
+    # happy with the score, drop continue-on-error and add `--min-msi=NN`.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Infection needs history to diff against the base
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: pcov
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      # Only mutate the lines this PR changed — fast, cheap, and won't error when a
+      # PR touches no app/ code.
+      - run: |
+          vendor/bin/infection \
+            --git-diff-lines \
+            --git-diff-base=origin/${{ github.base_ref }} \
+            --threads=max \
+            --no-progress \
+            --logger-github \
+            --ignore-msi-with-no-mutations
 
   deploy:
     name: Deploy to production
