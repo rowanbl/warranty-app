@@ -1,23 +1,40 @@
 name: Deploy
 
-# Runs ONLY after the CI workflow finishes successfully on main — i.e. on a merge
-# into main, never on a pull request. PRs only ever show the CI checks.
+# Runs on a merge into main (a push to main) — never on a pull request, so it
+# won't show up among PR checks. It tests first, then deploys: the deploy job only
+# runs if the tests pass.
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  push:
     branches: [main]
 
+# Queue deploys; never run two at once or cancel one mid-flight.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php artisan test --parallel
+
   deploy:
     name: Deploy to production
+    needs: test
     runs-on: ubuntu-latest
-    # Only deploy if CI actually passed (skips a red CI run).
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    # Queue deploys; never run two at once or cancel one mid-flight.
-    concurrency:
-      group: production-deploy
-      cancel-in-progress: false
     steps:
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.9.0

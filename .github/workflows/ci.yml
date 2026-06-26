@@ -1,8 +1,7 @@
 name: CI
 
-# Checks only — runs on every PR (and on pushes to main). Deployment is a separate
-# workflow (deploy.yml) that runs only after this one succeeds on main, so it never
-# appears on PR checks.
+# PR checks only. Deployment lives in deploy.yml (push to main) and runs its own
+# test gate, so deploy never appears on PR checks and never gets stuck "skipped".
 #
 # Assumes the repo root is this Laravel app. If you commit the whole monorepo,
 # move .github/ to the repo root and add a `defaults.run.working-directory`.
@@ -14,12 +13,10 @@ name: CI
 
 on:
   pull_request:
-  push:
-    branches: [main]
 
 concurrency:
-  group: ci-${{ github.ref }}-${{ github.event_name }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
