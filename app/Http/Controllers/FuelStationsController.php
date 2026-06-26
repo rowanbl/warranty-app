@@ -40,13 +40,21 @@ class FuelStationsController extends Controller
 
         $stations = $fuel->near($origin['latitude'], $origin['longitude'], $radius, $sort, $grade);
 
-        return response()->json([
+        $payload = [
             'origin' => $origin,
             'radius_miles' => $radius,
             'sort' => $sort,
             'grade' => $grade,
             'stations' => $stations,
-        ]);
+        ];
+
+        // While the app is in debug, say why an empty list is empty (feed down,
+        // bad credentials, and so on). Never leaked in production.
+        if (config('app.debug') && $fuel->lastError !== null) {
+            $payload['diagnostic'] = $fuel->lastError;
+        }
+
+        return response()->json($payload);
     }
 
     /**

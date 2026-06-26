@@ -93,6 +93,19 @@ class FuelStationsTest extends TestCase
             ->assertJsonPath('stations', []);
     }
 
+    public function test_in_debug_it_explains_why_the_list_is_empty(): void
+    {
+        config(['app.debug' => true]);
+        Http::fake([
+            'api.fuelfinder.service.gov.uk/*' => fn () => throw new ConnectionException('Could not resolve host'),
+        ]);
+
+        $this->getJson('/api/fuel-stations?lat='.self::BURNLEY_LAT.'&lng='.self::BURNLEY_LNG)
+            ->assertOk()
+            ->assertJsonPath('stations', [])
+            ->assertJsonStructure(['diagnostic']);
+    }
+
     public function test_it_asks_for_a_location_when_none_is_given(): void
     {
         $this->getJson('/api/fuel-stations')->assertStatus(422);
