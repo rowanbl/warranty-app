@@ -13,8 +13,7 @@
   "coverOptions": [
     { "name": "MOT Cover", "tagline": "Never pay for an MOT again", "price": 7.99, "period": "/month", "features": ["Annual MOT included", "Free retest", "Reminders & booking"], "icon": "doc.badge.gearshape", "highlighted": false },
     { "name": "Servicing Cover", "tagline": "Spread your servicing costs", "price": 19.99, "period": "/month", "features": ["Interim & full services", "Genuine parts via PartSync", "Digital service history"], "icon": "wrench.and.screwdriver.fill", "highlighted": true },
-    { "name": "Servicing Stop collection", "tagline": "We collect, fix and return", "price": 0, "period": "Pay as you go", "features": ["Free collection & return", "Authorised repairers", "Live repair tracking"], "icon": "box.truck.fill", "highlighted": false },
-    { "name": "Extended Warranty", "tagline": "Add up to 24 months cover", "price": 24.99, "period": "/month", "features": ["Up to £7,500 claim limit", "Wear & tear included", "Nationwide repairer network"], "icon": "checkmark.shield.fill", "highlighted": false }
+    { "name": "Servicing Stop collection", "tagline": "We collect, fix and return", "price": 0, "period": "Pay as you go", "features": ["Free collection & return", "Authorised repairers", "Live repair tracking"], "icon": "box.truck.fill", "highlighted": false }
   ],
   "servicePrices": [
     { "name": "Basic oil service", "detail": "Oil & filter · PartSync genuine", "priceFrom": 119, "icon": "drop.fill" },

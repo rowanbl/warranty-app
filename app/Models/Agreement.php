@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-use App\Enums\WarrantyTier;
 use Database\Factories\AgreementFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 // A warranty agreement, kept separate from the account so one account can hold
 // several. Each one covers a vehicle.
@@ -20,7 +20,7 @@ class Agreement extends Model
     protected function casts(): array
     {
         return [
-            'tier' => WarrantyTier::class,
+            // tier is a plan label like "10/100"
             'start_date' => 'date',
             'expiry_date' => 'date',
             'claim_limit' => 'integer',
@@ -36,5 +36,10 @@ class Agreement extends Model
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
     }
 }

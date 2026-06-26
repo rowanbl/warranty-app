@@ -7,8 +7,10 @@ use App\Models\Agreement;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\Vehicle\VehicleLookupService;
+use App\Support\WarrantyPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * A dealer registering a customer. It's a direct registration: the dealer fills
@@ -85,12 +87,22 @@ class DealerService
      */
     private function createAgreement(User $customer, Vehicle $vehicle, array $warranty): Agreement
     {
+        // The plan is decided by the car's age + mileage. A car outside every plan
+        // can't be covered, so registration is refused (the app blocks this first).
+        $plan = WarrantyPlan::resolve($vehicle->year, $vehicle->mileage);
+
+        if ($plan === null) {
+            throw ValidationException::withMessages([
+                'vehicle' => 'This vehicle is outside our warranty plans (too old or too many miles).',
+            ]);
+        }
+
         $months = (int) $warranty['term_months'];
 
         return $customer->agreements()->create([
             'vehicle_id' => $vehicle->id,
             'agreement_number' => $this->generateAgreementNumber(),
-            'tier' => config('warranty.default_tier'),
+            'tier' => $plan['tier'],
             'status' => 'active',
             'start_date' => now()->toDateString(),
             'expiry_date' => now()->addMonths($months)->toDateString(),

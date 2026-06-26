@@ -87,8 +87,27 @@ class CustomerRegistrationTest extends TestCase
         Http::fake([
             'login.microsoftonline.com/*' => Http::response(['access_token' => 'fake']),
             'history.mot.api.gov.uk/*' => Http::response(['registration' => 'LV68KXR', 'make' => 'BMW']),
-            'driver-vehicle-licensing.api.gov.uk/*' => Http::response(['make' => 'BMW']),
+            'driver-vehicle-licensing.api.gov.uk/*' => Http::response(['make' => 'BMW', 'yearOfManufacture' => 2020]),
         ]);
+    }
+
+    public function test_a_car_outside_the_plans_is_refused(): void
+    {
+        // 2005 car, way over age + mileage → no plan, so registration is rejected.
+        Http::fake([
+            'login.microsoftonline.com/*' => Http::response(['access_token' => 'fake']),
+            'history.mot.api.gov.uk/*' => Http::response(['registration' => 'LV68KXR', 'make' => 'BMW']),
+            'driver-vehicle-licensing.api.gov.uk/*' => Http::response(['make' => 'BMW', 'yearOfManufacture' => 2005]),
+        ]);
+        Notification::fake();
+
+        $payload = $this->payload();
+        $payload['vehicle']['mileage'] = 200000;
+
+        $this->actingAs($this->dealer())->postJson('/api/customers', $payload)
+            ->assertJsonValidationErrorFor('vehicle');
+
+        $this->assertDatabaseCount('agreements', 0);
     }
 
     /**

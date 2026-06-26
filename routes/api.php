@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\CoverController;
 use App\Http\Controllers\Dealer\CustomerController;
 use App\Http\Controllers\DemoContentController;
 use App\Http\Controllers\VehicleLookupController;
@@ -74,6 +75,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // The customer's saved car, straight from their account (no live lookup).
         Route::get('/vehicle', [VehicleLookupController::class, 'current']);
+
+        // The customer's add-on cover (subscriptions). GET = catalogue + active
+        // flags; POST {types:[...]} = set the active set (starts/stops are tracked).
+        Route::get('/cover', [CoverController::class, 'index']);
+        Route::post('/cover', [CoverController::class, 'update']);
 
         // Approved only. Unapproved dealers/garages get a 403, so the token is
         // powerless until a human approves them.
