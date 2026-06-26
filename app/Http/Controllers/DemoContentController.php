@@ -53,11 +53,6 @@ class DemoContentController extends Controller
         return response()->json(DemoContent::get('trackSteps'));
     }
 
-    public function fuelStations(): JsonResponse
-    {
-        return response()->json(DemoContent::get('fuelStations'));
-    }
-
     public function kpis(): JsonResponse
     {
         return response()->json(DemoContent::get('kpis'));

@@ -18,7 +18,6 @@ return new class extends Migration
             $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
             $table->string('business_name');
             $table->string('phone')->nullable();
-            $table->string('address')->nullable();
             $table->timestamps();
         });
     }

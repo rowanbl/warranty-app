@@ -1,37 +1,171 @@
 {
   "_note": "Fake data still served by the API. Each key is a TODO: build the real source, point the endpoint at it, then delete the key here. Already real and removed: vehicle + MOT (DVSA/DVLA lookup), warranty (agreements table).",
   "reminders": [
-    { "kind": "service", "title": "Service due", "detail": "Full service recommended", "due": "2026-07-05", "urgent": true },
-    { "kind": "insurance", "title": "Insurance renewal", "detail": "Compare & save with GoCompare", "due": "2026-07-22", "urgent": false },
-    { "kind": "tax", "title": "Road tax due", "detail": "£190/yr · renew online", "due": "2026-08-01", "urgent": false },
-    { "kind": "mot", "title": "MOT due", "detail": "Bundle with service to save", "due": "2026-09-14", "urgent": false },
-    { "kind": "oil", "title": "Oil level check", "detail": "Quick 2-minute check", "recurring": "Every 2 weeks", "urgent": false },
-    { "kind": "tyre", "title": "Tyre pressure check", "detail": "Front 33psi · Rear 35psi", "recurring": "Monthly", "urgent": false },
-    { "kind": "brake", "title": "Brake check", "detail": "Listen for noise / vibration", "recurring": "Every 3 months", "urgent": false },
-    { "kind": "winter", "title": "Winter check", "detail": "Battery, coolant & tyres", "recurring": "Seasonal", "urgent": false }
+    {
+      "kind": "service",
+      "title": "Service due",
+      "detail": "Full service recommended",
+      "due": "2026-07-05",
+      "urgent": true
+    },
+    {
+      "kind": "insurance",
+      "title": "Insurance renewal",
+      "detail": "Compare & save with GoCompare",
+      "due": "2026-07-22",
+      "urgent": false
+    },
+    {
+      "kind": "tax",
+      "title": "Road tax due",
+      "detail": "£190/yr · renew online",
+      "due": "2026-08-01",
+      "urgent": false
+    },
+    {
+      "kind": "mot",
+      "title": "MOT due",
+      "detail": "Bundle with service to save",
+      "due": "2026-09-14",
+      "urgent": false
+    },
+    {
+      "kind": "oil",
+      "title": "Oil level check",
+      "detail": "Quick 2-minute check",
+      "recurring": "Every 2 weeks",
+      "urgent": false
+    },
+    {
+      "kind": "tyre",
+      "title": "Tyre pressure check",
+      "detail": "Front 33psi · Rear 35psi",
+      "recurring": "Monthly",
+      "urgent": false
+    },
+    {
+      "kind": "brake",
+      "title": "Brake check",
+      "detail": "Listen for noise / vibration",
+      "recurring": "Every 3 months",
+      "urgent": false
+    },
+    {
+      "kind": "winter",
+      "title": "Winter check",
+      "detail": "Battery, coolant & tyres",
+      "recurring": "Seasonal",
+      "urgent": false
+    }
   ],
   "coverOptions": [
-    { "name": "MOT Cover", "tagline": "Never pay for an MOT again", "price": 7.99, "period": "/month", "features": ["Annual MOT included", "Free retest", "Reminders & booking"], "icon": "doc.badge.gearshape", "highlighted": false },
-    { "name": "Servicing Cover", "tagline": "Spread your servicing costs", "price": 19.99, "period": "/month", "features": ["Interim & full services", "Genuine parts via PartSync", "Digital service history"], "icon": "wrench.and.screwdriver.fill", "highlighted": true },
-    { "name": "Servicing Stop collection", "tagline": "We collect, fix and return", "price": 0, "period": "Pay as you go", "features": ["Free collection & return", "Authorised repairers", "Live repair tracking"], "icon": "box.truck.fill", "highlighted": false }
+    {
+      "name": "MOT Cover",
+      "tagline": "Never pay for an MOT again",
+      "price": 7.99,
+      "period": "/month",
+      "features": [
+        "Annual MOT included",
+        "Free retest",
+        "Reminders & booking"
+      ],
+      "icon": "doc.badge.gearshape",
+      "highlighted": false
+    },
+    {
+      "name": "Servicing Cover",
+      "tagline": "Spread your servicing costs",
+      "price": 19.99,
+      "period": "/month",
+      "features": [
+        "Interim & full services",
+        "Genuine parts via PartSync",
+        "Digital service history"
+      ],
+      "icon": "wrench.and.screwdriver.fill",
+      "highlighted": true
+    },
+    {
+      "name": "Servicing Stop collection",
+      "tagline": "We collect, fix and return",
+      "price": 0,
+      "period": "Pay as you go",
+      "features": [
+        "Free collection & return",
+        "Authorised repairers",
+        "Live repair tracking"
+      ],
+      "icon": "box.truck.fill",
+      "highlighted": false
+    }
   ],
   "servicePrices": [
-    { "name": "Basic oil service", "detail": "Oil & filter · PartSync genuine", "priceFrom": 119, "icon": "drop.fill" },
-    { "name": "Full service", "detail": "Inspection · fluids · 30+ checks", "priceFrom": 219, "icon": "wrench.and.screwdriver.fill" },
-    { "name": "Brake pads & discs", "detail": "Front axle · fitted", "priceFrom": 289, "icon": "hexagon.fill" },
-    { "name": "MOT + service bundle", "detail": "Save £35 vs separate", "priceFrom": 249, "icon": "doc.badge.gearshape" }
+    {
+      "name": "Basic oil service",
+      "detail": "Oil & filter · PartSync genuine",
+      "priceFrom": 119,
+      "icon": "drop.fill"
+    },
+    {
+      "name": "Full service",
+      "detail": "Inspection · fluids · 30+ checks",
+      "priceFrom": 219,
+      "icon": "wrench.and.screwdriver.fill"
+    },
+    {
+      "name": "Brake pads & discs",
+      "detail": "Front axle · fitted",
+      "priceFrom": 289,
+      "icon": "hexagon.fill"
+    },
+    {
+      "name": "MOT + service bundle",
+      "detail": "Save £35 vs separate",
+      "priceFrom": 249,
+      "icon": "doc.badge.gearshape"
+    }
   ],
   "symptoms": [
-    { "label": "Warning light on", "icon": "exclamationmark.triangle.fill" },
-    { "label": "Loss of power", "icon": "bolt.slash.fill" },
-    { "label": "Unusual noise", "icon": "waveform" },
-    { "label": "Smoke from exhaust", "icon": "smoke.fill" },
-    { "label": "Vibration", "icon": "wave.3.right" },
-    { "label": "Difficult starting", "icon": "key.fill" },
-    { "label": "Overheating", "icon": "thermometer.high" },
-    { "label": "Leaking fluid", "icon": "drop.triangle.fill" },
-    { "label": "Brakes feel soft", "icon": "hexagon" },
-    { "label": "Juddering gears", "icon": "gearshape.2.fill" }
+    {
+      "label": "Warning light on",
+      "icon": "exclamationmark.triangle.fill"
+    },
+    {
+      "label": "Loss of power",
+      "icon": "bolt.slash.fill"
+    },
+    {
+      "label": "Unusual noise",
+      "icon": "waveform"
+    },
+    {
+      "label": "Smoke from exhaust",
+      "icon": "smoke.fill"
+    },
+    {
+      "label": "Vibration",
+      "icon": "wave.3.right"
+    },
+    {
+      "label": "Difficult starting",
+      "icon": "key.fill"
+    },
+    {
+      "label": "Overheating",
+      "icon": "thermometer.high"
+    },
+    {
+      "label": "Leaking fluid",
+      "icon": "drop.triangle.fill"
+    },
+    {
+      "label": "Brakes feel soft",
+      "icon": "hexagon"
+    },
+    {
+      "label": "Juddering gears",
+      "icon": "gearshape.2.fill"
+    }
   ],
   "diagnosis": {
     "likelyFault": "EGR valve / DPF partial blockage",
@@ -46,23 +180,97 @@
     "warrantyCovered": "Likely covered under Gold warranty",
     "warrantyColor": "#2FA866",
     "confidence": 86,
-    "partsLikely": ["EGR valve (11717823525)", "DPF pressure sensor", "Glow plug (if regen fails)"],
-    "evidence": ["Fault code P2002 & P0401", "2 photos of dashboard", "1 video of cold start", "Mileage verified vs MOT"]
+    "partsLikely": [
+      "EGR valve (11717823525)",
+      "DPF pressure sensor",
+      "Glow plug (if regen fails)"
+    ],
+    "evidence": [
+      "Fault code P2002 & P0401",
+      "2 photos of dashboard",
+      "1 video of cold start",
+      "Mileage verified vs MOT"
+    ]
   },
   "trackSteps": [
-    { "title": "Collection booked", "detail": "Servicing Stop confirmed pickup", "icon": "calendar.badge.checkmark", "time": "Mon 09:10" },
-    { "title": "Driver on route", "detail": "Darren · WW-collect van", "icon": "location.fill", "time": "Tue 08:05" },
-    { "title": "Vehicle collected", "detail": "Mileage & condition logged", "icon": "checkmark.circle.fill", "time": "Tue 08:40" },
-    { "title": "Arrived at garage", "detail": "Pinpoint Autos, Burnley", "icon": "building.2.fill", "time": "Tue 09:25" },
-    { "title": "Diagnosis started", "detail": "Technician verifying fault codes", "icon": "stethoscope", "time": "Tue 10:15" },
-    { "title": "Parts requested", "detail": "EGR valve + sensor quoted", "icon": "list.clipboard.fill", "time": "Tue 11:00" },
-    { "title": "Parts ordered (PartSync)", "detail": "2 lines · £214.30", "icon": "shippingbox.fill", "time": "Tue 11:20" },
-    { "title": "Parts dispatched", "detail": "Next-day courier", "icon": "box.truck.fill", "time": "Tue 16:40" },
-    { "title": "Parts delivered", "detail": "Signed in at garage", "icon": "checkmark.seal.fill", "time": "Wed 08:50" },
-    { "title": "Repair in progress", "detail": "EGR replaced · regen running", "icon": "wrench.and.screwdriver.fill", "time": "Wed 10:30" },
-    { "title": "Quality check", "detail": "Road test & emissions retest", "icon": "checklist", "time": "Wed 13:15" },
-    { "title": "Vehicle ready", "detail": "Return scheduled", "icon": "car.fill", "time": "Wed 14:00" },
-    { "title": "Returned to customer", "detail": "Back on your driveway", "icon": "house.fill", "time": "Wed 16:30" }
+    {
+      "title": "Collection booked",
+      "detail": "Servicing Stop confirmed pickup",
+      "icon": "calendar.badge.checkmark",
+      "time": "Mon 09:10"
+    },
+    {
+      "title": "Driver on route",
+      "detail": "Darren · WW-collect van",
+      "icon": "location.fill",
+      "time": "Tue 08:05"
+    },
+    {
+      "title": "Vehicle collected",
+      "detail": "Mileage & condition logged",
+      "icon": "checkmark.circle.fill",
+      "time": "Tue 08:40"
+    },
+    {
+      "title": "Arrived at garage",
+      "detail": "Pinpoint Autos, Burnley",
+      "icon": "building.2.fill",
+      "time": "Tue 09:25"
+    },
+    {
+      "title": "Diagnosis started",
+      "detail": "Technician verifying fault codes",
+      "icon": "stethoscope",
+      "time": "Tue 10:15"
+    },
+    {
+      "title": "Parts requested",
+      "detail": "EGR valve + sensor quoted",
+      "icon": "list.clipboard.fill",
+      "time": "Tue 11:00"
+    },
+    {
+      "title": "Parts ordered (PartSync)",
+      "detail": "2 lines · £214.30",
+      "icon": "shippingbox.fill",
+      "time": "Tue 11:20"
+    },
+    {
+      "title": "Parts dispatched",
+      "detail": "Next-day courier",
+      "icon": "box.truck.fill",
+      "time": "Tue 16:40"
+    },
+    {
+      "title": "Parts delivered",
+      "detail": "Signed in at garage",
+      "icon": "checkmark.seal.fill",
+      "time": "Wed 08:50"
+    },
+    {
+      "title": "Repair in progress",
+      "detail": "EGR replaced · regen running",
+      "icon": "wrench.and.screwdriver.fill",
+      "time": "Wed 10:30"
+    },
+    {
+      "title": "Quality check",
+      "detail": "Road test & emissions retest",
+      "icon": "checklist",
+      "time": "Wed 13:15"
+    },
+    {
+      "title": "Vehicle ready",
+      "detail": "Return scheduled",
+      "icon": "car.fill",
+      "time": "Wed 14:00"
+    },
+    {
+      "title": "Returned to customer",
+      "detail": "Back on your driveway",
+      "icon": "house.fill",
+      "time": "Wed 16:30"
+    }
   ],
   "sanity": {
     "verdict": "Diagnosis consistent, good to proceed",
@@ -75,9 +283,27 @@
       "Symptoms do not indicate turbo failure (no overboost codes)"
     ],
     "partsRequired": [
-      { "name": "EGR valve", "number": "11717823525", "qty": 1, "price": 168.40, "availability": "In stock" },
-      { "name": "DPF differential sensor", "number": "13628589022", "qty": 1, "price": 45.90, "availability": "In stock" },
-      { "name": "Intake gasket set", "number": "11617806068", "qty": 1, "price": 22.10, "availability": "1 to 2 days" }
+      {
+        "name": "EGR valve",
+        "number": "11717823525",
+        "qty": 1,
+        "price": 168.4,
+        "availability": "In stock"
+      },
+      {
+        "name": "DPF differential sensor",
+        "number": "13628589022",
+        "qty": 1,
+        "price": 45.9,
+        "availability": "In stock"
+      },
+      {
+        "name": "Intake gasket set",
+        "number": "11617806068",
+        "qty": 1,
+        "price": 22.1,
+        "availability": "1 to 2 days"
+      }
     ],
     "labourSteps": [
       "Confirm live data: EGR position vs commanded",
@@ -89,33 +315,163 @@
     "warrantyNotes": "Covered under Gold (emissions). Capture before/after photos + regen printout for the claim."
   },
   "kpis": [
-    { "value": "12,480", "label": "Active warranties", "delta": "+4.2%", "positive": true, "icon": "checkmark.shield.fill", "tint": "#D8431F" },
-    { "value": "318", "label": "Open claims", "delta": "-11%", "positive": true, "icon": "folder.fill", "tint": "#2D7FF0" },
-    { "value": "£1.42M", "label": "Claims prevented (YTD)", "delta": "+18%", "positive": true, "icon": "sterlingsign.circle.fill", "tint": "#F2B544" },
-    { "value": "2.1 days", "label": "Avg vehicle downtime", "delta": "-0.8d", "positive": true, "icon": "clock.fill", "tint": "#0A2540" },
-    { "value": "94%", "label": "Evidence-captured claims", "delta": "+22pts", "positive": true, "icon": "camera.fill", "tint": "#D8431F" },
-    { "value": "41", "label": "Mileage fraud flags", "delta": "+9", "positive": false, "icon": "exclamationmark.triangle.fill", "tint": "#D6453C" }
+    {
+      "value": "12,480",
+      "label": "Active warranties",
+      "delta": "+4.2%",
+      "positive": true,
+      "icon": "checkmark.shield.fill",
+      "tint": "#D8431F"
+    },
+    {
+      "value": "318",
+      "label": "Open claims",
+      "delta": "-11%",
+      "positive": true,
+      "icon": "folder.fill",
+      "tint": "#2D7FF0"
+    },
+    {
+      "value": "£1.42M",
+      "label": "Claims prevented (YTD)",
+      "delta": "+18%",
+      "positive": true,
+      "icon": "sterlingsign.circle.fill",
+      "tint": "#F2B544"
+    },
+    {
+      "value": "2.1 days",
+      "label": "Avg vehicle downtime",
+      "delta": "-0.8d",
+      "positive": true,
+      "icon": "clock.fill",
+      "tint": "#0A2540"
+    },
+    {
+      "value": "94%",
+      "label": "Evidence-captured claims",
+      "delta": "+22pts",
+      "positive": true,
+      "icon": "camera.fill",
+      "tint": "#D8431F"
+    },
+    {
+      "value": "41",
+      "label": "Mileage fraud flags",
+      "delta": "+9",
+      "positive": false,
+      "icon": "exclamationmark.triangle.fill",
+      "tint": "#D6453C"
+    }
   ],
   "claims": [
-    { "ref": "CLM-90412", "customer": "R. Abbott", "vehicle": "BMW 320d", "fault": "EGR / DPF", "status": "Evidence captured", "statusColor": "#2D7FF0", "value": 480, "flagged": false },
-    { "ref": "CLM-90388", "customer": "S. Okafor", "vehicle": "Audi A4", "fault": "Turbo actuator", "status": "Awaiting parts", "statusColor": "#E8941A", "value": 920, "flagged": false },
-    { "ref": "CLM-90377", "customer": "J. Patel", "vehicle": "VW Golf", "fault": "Clutch", "status": "Mileage mismatch", "statusColor": "#D6453C", "value": 1340, "flagged": true },
-    { "ref": "CLM-90351", "customer": "M. Hughes", "vehicle": "Ford Kuga", "fault": "Coil pack", "status": "Repaired", "statusColor": "#2FA866", "value": 210, "flagged": false },
-    { "ref": "CLM-90344", "customer": "L. Byrne", "vehicle": "Nissan Qashqai", "fault": "Suspension", "status": "In progress", "statusColor": "#D8431F", "value": 560, "flagged": false }
+    {
+      "ref": "CLM-90412",
+      "customer": "R. Abbott",
+      "vehicle": "BMW 320d",
+      "fault": "EGR / DPF",
+      "status": "Evidence captured",
+      "statusColor": "#2D7FF0",
+      "value": 480,
+      "flagged": false
+    },
+    {
+      "ref": "CLM-90388",
+      "customer": "S. Okafor",
+      "vehicle": "Audi A4",
+      "fault": "Turbo actuator",
+      "status": "Awaiting parts",
+      "statusColor": "#E8941A",
+      "value": 920,
+      "flagged": false
+    },
+    {
+      "ref": "CLM-90377",
+      "customer": "J. Patel",
+      "vehicle": "VW Golf",
+      "fault": "Clutch",
+      "status": "Mileage mismatch",
+      "statusColor": "#D6453C",
+      "value": 1340,
+      "flagged": true
+    },
+    {
+      "ref": "CLM-90351",
+      "customer": "M. Hughes",
+      "vehicle": "Ford Kuga",
+      "fault": "Coil pack",
+      "status": "Repaired",
+      "statusColor": "#2FA866",
+      "value": 210,
+      "flagged": false
+    },
+    {
+      "ref": "CLM-90344",
+      "customer": "L. Byrne",
+      "vehicle": "Nissan Qashqai",
+      "fault": "Suspension",
+      "status": "In progress",
+      "statusColor": "#D8431F",
+      "value": 560,
+      "flagged": false
+    }
   ],
   "tools": [
-    { "title": "Cheapest fuel nearby", "subtitle": "Live forecourt prices", "icon": "fuelpump.fill", "tint": "#D8431F", "kind": "fuel" },
-    { "title": "Tyre depot locator", "subtitle": "Book fitting near you", "icon": "circle.circle.fill", "tint": "#0A2540", "kind": "tyre" },
-    { "title": "EV charging points", "subtitle": "Rapid & destination", "icon": "bolt.car.fill", "tint": "#2D7FF0", "kind": "ev" },
-    { "title": "Parking finder", "subtitle": "Cheapest & nearest", "icon": "parkingsign.circle.fill", "tint": "#F2B544", "kind": "parking" },
-    { "title": "Journey planner", "subtitle": "Plan & cost a trip", "icon": "map.fill", "tint": "#D8431F", "kind": "journey" },
-    { "title": "Compare insurance", "subtitle": "GoCompare referral", "icon": "umbrella.fill", "tint": "#D6453C", "kind": "insurance" },
-    { "title": "Industry pricing insights", "subtitle": "What others pay to repair", "icon": "chart.bar.fill", "tint": "#0A2540", "kind": "pricing" },
-    { "title": "Maintenance tips", "subtitle": "Look after your car", "icon": "lightbulb.fill", "tint": "#E8941A", "kind": "tips" }
-  ],
-  "fuelStations": [
-    { "name": "Asda Burnley", "distance": "1.2 mi", "unleaded": 132.7, "diesel": 138.9, "cheapest": true },
-    { "name": "Sainsbury's Burnley", "distance": "1.8 mi", "unleaded": 134.9, "diesel": 141.7, "cheapest": false },
-    { "name": "BP Burnley Rd", "distance": "0.7 mi", "unleaded": 142.9, "diesel": 149.9, "cheapest": false }
+    {
+      "title": "Cheapest fuel nearby",
+      "subtitle": "Live forecourt prices",
+      "icon": "fuelpump.fill",
+      "tint": "#D8431F",
+      "kind": "fuel"
+    },
+    {
+      "title": "Tyre depot locator",
+      "subtitle": "Book fitting near you",
+      "icon": "circle.circle.fill",
+      "tint": "#0A2540",
+      "kind": "tyre"
+    },
+    {
+      "title": "EV charging points",
+      "subtitle": "Rapid & destination",
+      "icon": "bolt.car.fill",
+      "tint": "#2D7FF0",
+      "kind": "ev"
+    },
+    {
+      "title": "Parking finder",
+      "subtitle": "Cheapest & nearest",
+      "icon": "parkingsign.circle.fill",
+      "tint": "#F2B544",
+      "kind": "parking"
+    },
+    {
+      "title": "Journey planner",
+      "subtitle": "Plan & cost a trip",
+      "icon": "map.fill",
+      "tint": "#D8431F",
+      "kind": "journey"
+    },
+    {
+      "title": "Compare insurance",
+      "subtitle": "GoCompare referral",
+      "icon": "umbrella.fill",
+      "tint": "#D6453C",
+      "kind": "insurance"
+    },
+    {
+      "title": "Industry pricing insights",
+      "subtitle": "What others pay to repair",
+      "icon": "chart.bar.fill",
+      "tint": "#0A2540",
+      "kind": "pricing"
+    },
+    {
+      "title": "Maintenance tips",
+      "subtitle": "Look after your car",
+      "icon": "lightbulb.fill",
+      "tint": "#E8941A",
+      "kind": "tips"
+    }
   ]
 }

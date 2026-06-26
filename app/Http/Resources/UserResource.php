@@ -28,9 +28,11 @@ class UserResource extends JsonResource
             // Dealers/garages need approval; everyone else is always approved.
             // The app holds unapproved accounts on an "awaiting approval" screen.
             'approved' => $this->isApproved(),
-            // The type-specific bits (phone, address, business name) live here,
-            // joined from the matching profile table.
+            // The type-specific bits (phone, business name) live here, joined
+            // from the matching profile table.
             'profile' => $this->profile(),
+            // The user's addresses, one flagged is_primary as their main one.
+            'addresses' => $this->addresses,
         ];
     }
 }

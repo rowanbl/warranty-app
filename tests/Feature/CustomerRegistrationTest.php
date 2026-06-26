@@ -29,7 +29,69 @@ class CustomerRegistrationTest extends TestCase
         $this->assertSame(AccountType::Customer, $customer->account_type);
         $this->assertDatabaseHas('vehicles', ['user_id' => $customer->id, 'registration' => 'LV68KXR']);
         $this->assertDatabaseHas('agreements', ['user_id' => $customer->id]);
-        $this->assertDatabaseHas('bank_details', ['user_id' => $customer->id]);
+
+        // The bank details hang off the agreement, not the user.
+        $agreement = $customer->agreements()->firstOrFail();
+        $this->assertDatabaseHas('bank_details', ['agreement_id' => $agreement->id]);
+    }
+
+    public function test_the_address_is_stored_structured_and_marked_main(): void
+    {
+        $this->fakeLookup();
+        Notification::fake();
+
+        $this->actingAs($this->dealer())->postJson('/api/customers', $this->payload())->assertCreated();
+
+        $customer = User::whereEmail('rowan@email.test')->firstOrFail();
+        $this->assertDatabaseHas('addresses', [
+            'user_id' => $customer->id,
+            'line1' => '1 Test St',
+            'postcode' => 'BB11 1BD',
+            'is_primary' => true,
+        ]);
+
+        // The agreement points at the address it's for.
+        $agreement = $customer->agreements()->firstOrFail();
+        $this->assertSame($customer->primaryAddress->id, $agreement->address_id);
+    }
+
+    public function test_an_existing_customer_email_gains_an_agreement_without_a_new_account(): void
+    {
+        $this->fakeLookup();
+        Notification::fake();
+
+        $this->actingAs($this->dealer())->postJson('/api/customers', $this->payload())->assertCreated();
+
+        // A second registration for the same email: a second car at a second
+        // address, but the same customer.
+        $second = $this->payload();
+        $second['vehicle']['registration'] = 'AB12CDE';
+        $second['customer']['address'] = ['line1' => '9 Other Rd', 'postcode' => 'BB12 0AA'];
+
+        $this->actingAs($this->dealer())->postJson('/api/customers', $second)->assertCreated();
+
+        $this->assertSame(1, User::whereEmail('rowan@email.test')->count());
+
+        $customer = User::whereEmail('rowan@email.test')->firstOrFail();
+        $this->assertSame(2, $customer->agreements()->count());
+        // The first address stays the main one; the second is just stored.
+        $this->assertSame('1 Test St', $customer->primaryAddress->line1);
+        $this->assertSame(2, $customer->addresses()->count());
+    }
+
+    public function test_an_email_on_a_non_customer_account_is_rejected(): void
+    {
+        $this->fakeLookup();
+        Notification::fake();
+
+        $dealerEmail = $this->dealer()->email;
+        $payload = $this->payload();
+        $payload['customer']['email'] = $dealerEmail;
+
+        $this->actingAs($this->dealer())->postJson('/api/customers', $payload)
+            ->assertJsonValidationErrorFor('customer.email');
+
+        $this->assertDatabaseCount('agreements', 0);
     }
 
     public function test_the_customer_starts_unverified_and_is_emailed_a_link(): void
@@ -116,7 +178,12 @@ class CustomerRegistrationTest extends TestCase
     private function payload(): array
     {
         return [
-            'customer' => ['name' => 'Rowan Abbott', 'email' => 'rowan@email.test', 'phone' => '07000 000000', 'address' => '1 Test St'],
+            'customer' => [
+                'name' => 'Rowan Abbott',
+                'email' => 'rowan@email.test',
+                'phone' => '07000 000000',
+                'address' => ['line1' => '1 Test St', 'city' => 'Burnley', 'postcode' => 'BB11 1BD'],
+            ],
             'vehicle' => ['registration' => 'LV68KXR', 'mileage' => 64230],
             'warranty' => ['term_months' => 36, 'monthly' => 39.99],
             'bank' => ['account_name' => 'R Abbott', 'sort_code' => '00-00-00', 'account_number' => '12345678'],

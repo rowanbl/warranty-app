@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 // A warranty agreement, kept separate from the account so one account can hold
 // several. Each one covers a vehicle.
@@ -36,6 +37,16 @@ class Agreement extends Model
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
+    }
+
+    public function address(): BelongsTo
+    {
+        return $this->belongsTo(Address::class);
+    }
+
+    public function bankDetail(): HasOne
+    {
+        return $this->hasOne(BankDetail::class);
     }
 
     public function subscriptions(): HasMany

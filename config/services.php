@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // Loqate (Addressy) address autocomplete and UK geocoding. One key drives
+    // Find, Retrieve and Geocode. Shared with partsync.
+    'loqate' => [
+        'key' => env('LOQATE_API_KEY'),
+    ],
+
 ];
