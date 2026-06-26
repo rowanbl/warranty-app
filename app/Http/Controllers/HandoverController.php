@@ -30,8 +30,10 @@ class HandoverController extends Controller
     }
 
     /**
-     * Check a WW ID exists and is still unclaimed, before asking for the code.
-     * Lets the app reject an unknown agreement number up front.
+     * The customer enters their agreement number (WW ID) to log in. Works the
+     * first time and every time after, so it's a real passwordless login, not a
+     * one-time claim. If it's a real number we email a fresh code; unknown
+     * numbers are rejected here.
      */
     public function check(Request $request): JsonResponse
     {
@@ -41,13 +43,15 @@ class HandoverController extends Controller
 
         $wwId = preg_replace('/\D/', '', $validated['ww_id']) ?? '';
 
-        $exists = Handover::where('ww_id', $wwId)->whereNull('claimed_at')->exists();
+        $handover = Handover::where('ww_id', $wwId)->first();
 
-        if (! $exists) {
+        if ($handover === null) {
             return response()->json([
                 'message' => 'We couldn\'t find that agreement number.',
             ], 404);
         }
+
+        $this->service->sendCode($handover);
 
         return response()->json(['exists' => true]);
     }

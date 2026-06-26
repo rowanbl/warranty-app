@@ -30,17 +30,17 @@ class HandoverService
      */
     public function submit(User $dealer, array $data): Handover
     {
-        $code = $this->generateCode();
-
-        return DB::transaction(function () use ($dealer, $data, $code) {
+        return DB::transaction(function () use ($dealer, $data) {
             $customer = $this->createCustomer($data['customer']);
 
             $vehicle = $this->createVehicle($customer, $data['vehicle']);
             $this->createBankDetail($customer, $data['bank']);
 
+            // No code yet: it's generated and emailed when the customer enters
+            // their WW ID. A placeholder hash keeps the column non-null.
             $handover = Handover::create([
                 'ww_id' => $this->generateWwId(),
-                'code_hash' => Hash::make($code),
+                'code_hash' => Hash::make($this->generateCode()),
                 'dealer_id' => $dealer->id,
                 'customer_id' => $customer->id,
                 'cover' => $data['cover'] ?? [],
@@ -52,24 +52,35 @@ class HandoverService
                 $this->createAgreement($customer, $vehicle, $handover->ww_id, $data['warranty']);
             }
 
-            $customer->notify(new HandoverCodeNotification($handover->ww_id, $code));
-
             return $handover;
         });
     }
 
     /**
-     * Claim a prepared account with its WW ID and code. Verifies the email
-     * (the code proves they own it) and marks the handover claimed.
+     * Generate a fresh code, store its hash, and email it to the customer. Used
+     * when the customer enters their WW ID, so the code is sent on demand.
+     */
+    public function sendCode(Handover $handover): void
+    {
+        $code = $this->generateCode();
+        $handover->update(['code_hash' => Hash::make($code)]);
+        $handover->customer->notify(new HandoverCodeNotification($handover->ww_id, $code));
+    }
+
+    /**
+     * Log in with an agreement number (WW ID) and the emailed code. Works the
+     * first time and on every return, so the agreement number is a permanent
+     * passwordless login, not a one-time claim. The code proves email ownership,
+     * so it also verifies the email and records the first login.
      */
     public function redeem(string $wwId, string $code): Handover
     {
         $handover = Handover::where('ww_id', $this->normaliseWwId($wwId))->first();
         // $wwId may arrive formatted (WW-4471-228901) or plain; both match.
 
-        if (! $handover || $handover->isClaimed() || ! Hash::check($code, $handover->code_hash)) {
+        if (! $handover || ! Hash::check($code, $handover->code_hash)) {
             throw ValidationException::withMessages([
-                'code' => 'That WW ID and code don\'t match.',
+                'code' => 'That agreement number and code don\'t match.',
             ]);
         }
 
@@ -79,7 +90,10 @@ class HandoverService
             $customer->markEmailAsVerified();
         }
 
-        $handover->update(['claimed_at' => now()]);
+        // claimed_at records when they first logged in; later logins leave it.
+        if (! $handover->isClaimed()) {
+            $handover->update(['claimed_at' => now()]);
+        }
 
         return $handover;
     }

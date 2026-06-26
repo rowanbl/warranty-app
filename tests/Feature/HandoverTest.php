@@ -110,16 +110,26 @@ class HandoverTest extends TestCase
         $this->assertNotSame('12345678', $raw);
     }
 
-    public function test_the_customer_is_emailed_their_code(): void
+    public function test_submitting_does_not_email_a_code_yet(): void
     {
         Notification::fake();
 
         $this->actingAs($this->dealer())->postJson('/api/handovers', $this->payload());
 
-        Notification::assertSentTo(
-            User::whereEmail('rowan@email.test')->first(),
-            HandoverCodeNotification::class,
-        );
+        // The code is sent when the customer enters their WW ID, not at submit.
+        Notification::assertNothingSent();
+    }
+
+    public function test_entering_the_ww_id_emails_the_code(): void
+    {
+        Notification::fake();
+        $this->actingAs($this->dealer())->postJson('/api/handovers', $this->payload());
+        $customer = User::whereEmail('rowan@email.test')->firstOrFail();
+        $wwId = DB::table('handovers')->where('customer_id', $customer->id)->value('ww_id');
+
+        $this->postJson('/api/handovers/check', ['ww_id' => $wwId])->assertOk();
+
+        Notification::assertSentTo($customer, HandoverCodeNotification::class);
     }
 
     public function test_a_customer_cannot_set_handovers_up(): void
@@ -148,12 +158,13 @@ class HandoverTest extends TestCase
         $this->postJson('/api/handovers/check', ['ww_id' => '9999999999'])->assertNotFound();
     }
 
-    public function test_check_rejects_an_already_claimed_ww_id(): void
+    public function test_the_agreement_number_still_works_after_the_first_login(): void
     {
         [$wwId, $code] = $this->prepareHandover();
         $this->postJson('/api/handovers/redeem', ['ww_id' => $wwId, 'code' => $code]);
 
-        $this->postJson('/api/handovers/check', ['ww_id' => $wwId])->assertNotFound();
+        // Returning login: entering the agreement number again still sends a code.
+        $this->postJson('/api/handovers/check', ['ww_id' => $wwId])->assertOk();
     }
 
     public function test_a_customer_can_claim_their_prepared_account(): void
@@ -184,14 +195,13 @@ class HandoverTest extends TestCase
             ->assertJsonValidationErrorFor('code');
     }
 
-    public function test_a_handover_can_only_be_claimed_once(): void
+    public function test_the_agreement_number_logs_in_repeatedly(): void
     {
         [$wwId, $code] = $this->prepareHandover();
 
-        $this->postJson('/api/handovers/redeem', ['ww_id' => $wwId, 'code' => $code]);
-        $second = $this->postJson('/api/handovers/redeem', ['ww_id' => $wwId, 'code' => $code]);
-
-        $second->assertJsonValidationErrorFor('code');
+        // First login and a returning login both work, it's not one-time.
+        $this->postJson('/api/handovers/redeem', ['ww_id' => $wwId, 'code' => $code])->assertOk();
+        $this->postJson('/api/handovers/redeem', ['ww_id' => $wwId, 'code' => $code])->assertOk();
     }
 
     private function dealer(): User
@@ -200,7 +210,8 @@ class HandoverTest extends TestCase
     }
 
     /**
-     * Submit a handover and return its WW ID and the emailed code.
+     * Submit a handover, then request the code (as the customer entering their
+     * WW ID does), and return the WW ID and the emailed code.
      *
      * @return array{0: string, 1: string}
      */
@@ -211,6 +222,10 @@ class HandoverTest extends TestCase
         $this->actingAs($this->dealer())->postJson('/api/handovers', $this->payload());
 
         $customer = User::whereEmail('rowan@email.test')->firstOrFail();
+        $handover = DB::table('handovers')->where('customer_id', $customer->id)->first();
+
+        // The customer entering their WW ID is what sends the code.
+        $this->postJson('/api/handovers/check', ['ww_id' => $handover->ww_id]);
 
         $code = null;
         Notification::assertSentTo($customer, HandoverCodeNotification::class, function ($notification) use (&$code) {
@@ -218,8 +233,6 @@ class HandoverTest extends TestCase
 
             return true;
         });
-
-        $handover = DB::table('handovers')->where('customer_id', $customer->id)->first();
 
         return [$handover->ww_id, $code];
     }
