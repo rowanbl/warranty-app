@@ -1,5 +1,9 @@
-name: CI & Deploy
+name: CI
 
+# Checks only — runs on every PR (and on pushes to main). Deployment is a separate
+# workflow (deploy.yml) that runs only after this one succeeds on main, so it never
+# appears on PR checks.
+#
 # Assumes the repo root is this Laravel app. If you commit the whole monorepo,
 # move .github/ to the repo root and add a `defaults.run.working-directory`.
 #
@@ -79,25 +83,3 @@ jobs:
             --no-progress \
             --logger-github \
             --ignore-msi-with-no-mutations
-
-  deploy:
-    name: Deploy to production
-    needs: [test, frontend]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    # Queue deploys; never run two at once or cancel one mid-flight.
-    concurrency:
-      group: production-deploy
-      cancel-in-progress: false
-    steps:
-      - name: Start SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
-      - name: Trust the server host key
-        run: ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
-      # The server pulls + builds + migrates itself — this just kicks it off.
-      - name: Run the deploy script over SSH
-        run: |
-          ssh -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "cd '${{ secrets.DEPLOY_PATH }}' && bash deploy/deploy.sh"
