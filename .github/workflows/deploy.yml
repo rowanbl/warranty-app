@@ -41,7 +41,11 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
       - name: Trust the server host key
-        run: ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+        # ssh-agent loads the key into memory but doesn't create ~/.ssh, so make
+        # the directory before appending or the redirect fails under `bash -e`.
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
       # Pull first so the LATEST deploy.sh runs (bash loads the script into memory
       # at start, so a pull from inside it wouldn't take effect until next time).
       - name: Run the deploy script over SSH
