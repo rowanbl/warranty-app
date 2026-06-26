@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Direct Debit details for a customer. The sort code and account number
-        // are encrypted at rest, so the columns hold ciphertext and need room.
+        // Direct Debit details for a warranty agreement, so each agreement can be
+        // paid from its own account. The sort code and account number are
+        // encrypted at rest, so the columns hold ciphertext and need room.
         Schema::create('bank_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('agreement_id')->constrained()->cascadeOnDelete();
             $table->string('account_name');
             $table->text('sort_code');
             $table->text('account_number');

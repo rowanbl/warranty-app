@@ -46,9 +46,35 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Agreement::class);
     }
 
-    public function bankDetail(): HasOne
+    public function addresses(): HasMany
     {
-        return $this->hasOne(BankDetail::class);
+        return $this->hasMany(Address::class);
+    }
+
+    public function primaryAddress(): HasOne
+    {
+        return $this->hasOne(Address::class)->where('is_primary', true);
+    }
+
+    /**
+     * Store an address for this user, reusing an identical one already on file
+     * rather than duplicating it. The first address a user gets becomes their
+     * main one.
+     *
+     * @param  array<string, mixed>  $fields
+     */
+    public function rememberAddress(array $fields): Address
+    {
+        $address = $this->addresses()->firstOrCreate(
+            ['line1' => $fields['line1'], 'postcode' => $fields['postcode']],
+            $fields,
+        );
+
+        if (! $this->addresses()->where('is_primary', true)->exists()) {
+            $address->update(['is_primary' => true]);
+        }
+
+        return $address;
     }
 
     public function customer(): HasOne

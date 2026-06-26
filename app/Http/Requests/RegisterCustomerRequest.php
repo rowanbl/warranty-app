@@ -3,9 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\AccountType;
-use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class RegisterCustomerRequest extends FormRequest
 {
@@ -31,9 +29,22 @@ class RegisterCustomerRequest extends FormRequest
         return [
             'customer' => ['required', 'array'],
             'customer.name' => ['required', 'string', 'max:255'],
-            'customer.email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class, 'email')],
+            // An existing email is allowed: a returning customer gains another
+            // agreement rather than a duplicate account.
+            'customer.email' => ['required', 'string', 'email', 'max:255'],
             'customer.phone' => ['nullable', 'string', 'max:50'],
-            'customer.address' => ['nullable', 'string', 'max:255'],
+
+            // Structured address (optional). If any of it is sent, the line and
+            // postcode are the minimum to store a usable address.
+            'customer.address' => ['nullable', 'array'],
+            'customer.address.label' => ['nullable', 'string', 'max:50'],
+            'customer.address.line1' => ['required_with:customer.address', 'string', 'max:255'],
+            'customer.address.line2' => ['nullable', 'string', 'max:255'],
+            'customer.address.city' => ['nullable', 'string', 'max:255'],
+            'customer.address.county' => ['nullable', 'string', 'max:255'],
+            'customer.address.postcode' => ['required_with:customer.address', 'string', 'max:12'],
+            'customer.address.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'customer.address.longitude' => ['nullable', 'numeric', 'between:-180,180'],
 
             'vehicle' => ['required', 'array'],
             'vehicle.registration' => ['required', 'string', 'max:10'],

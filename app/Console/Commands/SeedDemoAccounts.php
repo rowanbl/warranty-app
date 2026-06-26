@@ -19,9 +19,9 @@ class SeedDemoAccounts extends Command
      */
     private const ACCOUNTS = [
         ['type' => AccountType::Admin, 'name' => 'Warranty Wise Staff', 'email' => 'admin@warrantywise.test'],
-        ['type' => AccountType::Dealer, 'name' => 'Demo Motors', 'email' => 'dealer@warrantywise.test', 'business_name' => 'Demo Motors', 'phone' => '01234 567890', 'address' => '1 High Street, London'],
-        ['type' => AccountType::Garage, 'name' => 'Demo Garage', 'email' => 'garage@warrantywise.test', 'business_name' => 'Demo Garage', 'phone' => '01234 567891', 'address' => '2 High Street, London'],
-        ['type' => AccountType::Customer, 'name' => 'John Doe', 'email' => 'customer@warrantywise.test', 'phone' => '07700 900000', 'address' => '3 High Street, London'],
+        ['type' => AccountType::Dealer, 'name' => 'Demo Motors', 'email' => 'dealer@warrantywise.test', 'business_name' => 'Demo Motors', 'phone' => '01234 567890', 'address' => ['line1' => '1 High Street', 'city' => 'London', 'postcode' => 'SW1A 1AA']],
+        ['type' => AccountType::Garage, 'name' => 'Demo Garage', 'email' => 'garage@warrantywise.test', 'business_name' => 'Demo Garage', 'phone' => '01234 567891', 'address' => ['line1' => '2 High Street', 'city' => 'London', 'postcode' => 'SW1A 1AA']],
+        ['type' => AccountType::Customer, 'name' => 'John Doe', 'email' => 'customer@warrantywise.test', 'phone' => '07700 900000', 'address' => ['line1' => '3 High Street', 'city' => 'London', 'postcode' => 'SW1A 1AA']],
     ];
 
     public function handle(): int
@@ -80,7 +80,6 @@ class SeedDemoAccounts extends Command
 
         $attributes = [
             'phone' => $account['phone'] ?? null,
-            'address' => $account['address'] ?? null,
         ];
 
         if (isset($account['business_name'])) {
@@ -91,5 +90,9 @@ class SeedDemoAccounts extends Command
 
         // Empty match array scopes to this user, so re-running updates in place.
         $relation->updateOrCreate([], $attributes);
+
+        if (isset($account['address'])) {
+            $user->rememberAddress($account['address']);
+        }
     }
 }

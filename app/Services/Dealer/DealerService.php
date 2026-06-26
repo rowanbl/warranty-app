@@ -3,6 +3,7 @@
 namespace App\Services\Dealer;
 
 use App\Enums\AccountType;
+use App\Models\Address;
 use App\Models\Agreement;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -32,36 +33,70 @@ class DealerService
     public function registerCustomer(array $data): Agreement
     {
         return DB::transaction(function () use ($data) {
-            $customer = $this->createCustomer($data['customer']);
+            $customer = $this->resolveCustomer($data['customer']);
             $vehicle = $this->createVehicle($customer, $data['vehicle']);
-            $this->createBankDetail($customer, $data['bank']);
-            $agreement = $this->createAgreement($customer, $vehicle, $data['warranty']);
+            $address = $this->resolveAddress($customer, $data['customer']['address'] ?? null);
+            $agreement = $this->createAgreement($customer, $vehicle, $address, $data['warranty']);
+            $this->createBankDetail($agreement, $data['bank']);
 
-            // Standard Laravel email verification: the magic link the customer
-            // clicks to be allowed to sign in.
-            $customer->sendEmailVerificationNotification();
+            // Email the magic link to anyone who still needs to verify, which is
+            // every fresh account and any returning customer who never did.
+            if (! $customer->hasVerifiedEmail()) {
+                $customer->sendEmailVerificationNotification();
+            }
 
             return $agreement;
         });
     }
 
     /**
-     * @param  array{name: string, email: string, phone?: string, address?: string}  $details
+     * The customer this agreement is for. A new email creates the account; an
+     * email already on a customer account is reused, so a returning customer
+     * just gains another agreement. Their name is left as it stands.
+     *
+     * @param  array{name: string, email: string, phone?: string, address?: array}  $details
      */
-    private function createCustomer(array $details): User
+    private function resolveCustomer(array $details): User
     {
+        $email = Str::lower($details['email']);
+        $existing = User::where('email', $email)->first();
+
+        if ($existing !== null) {
+            if ($existing->account_type !== AccountType::Customer) {
+                throw ValidationException::withMessages([
+                    'customer.email' => 'That email already belongs to a non-customer account.',
+                ]);
+            }
+
+            return $existing;
+        }
+
         $customer = User::create([
             'name' => $details['name'],
-            'email' => Str::lower($details['email']),
+            'email' => $email,
             'account_type' => AccountType::Customer,
         ]);
 
         $customer->customer()->create([
             'phone' => $details['phone'] ?? null,
-            'address' => $details['address'] ?? null,
         ]);
 
         return $customer;
+    }
+
+    /**
+     * Store the agreement's address against the customer, or null if the dealer
+     * didn't enter one.
+     *
+     * @param  array<string, mixed>|null  $address
+     */
+    private function resolveAddress(User $customer, ?array $address): ?Address
+    {
+        if (empty($address)) {
+            return null;
+        }
+
+        return $customer->rememberAddress($address);
     }
 
     /**
@@ -85,7 +120,7 @@ class DealerService
     /**
      * @param  array{term_months: int, monthly: float}  $warranty
      */
-    private function createAgreement(User $customer, Vehicle $vehicle, array $warranty): Agreement
+    private function createAgreement(User $customer, Vehicle $vehicle, ?Address $address, array $warranty): Agreement
     {
         // The plan is decided by the car's age + mileage. A car outside every plan
         // can't be covered, so registration is refused (the app blocks this first).
@@ -101,6 +136,7 @@ class DealerService
 
         return $customer->agreements()->create([
             'vehicle_id' => $vehicle->id,
+            'address_id' => $address?->id,
             'agreement_number' => $this->generateAgreementNumber(),
             'tier' => $plan['tier'],
             'status' => 'active',
@@ -114,9 +150,9 @@ class DealerService
     /**
      * @param  array{account_name: string, sort_code: string, account_number: string}  $bank
      */
-    private function createBankDetail(User $customer, array $bank): void
+    private function createBankDetail(Agreement $agreement, array $bank): void
     {
-        $customer->bankDetail()->create([
+        $agreement->bankDetail()->create([
             'account_name' => $bank['account_name'],
             'sort_code' => $bank['sort_code'],
             'account_number' => $bank['account_number'],

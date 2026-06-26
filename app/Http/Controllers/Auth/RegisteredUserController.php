@@ -30,7 +30,17 @@ class RegisteredUserController extends Controller
             'account_type' => ['nullable', Rule::in($selfRegisterable)],
             'business_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
-            'address' => ['nullable', 'string', 'max:255'],
+            // Structured address (optional). Sending any of it requires at least
+            // the line and postcode, so what we store is usable.
+            'address' => ['nullable', 'array'],
+            'address.label' => ['nullable', 'string', 'max:50'],
+            'address.line1' => ['required_with:address', 'string', 'max:255'],
+            'address.line2' => ['nullable', 'string', 'max:255'],
+            'address.city' => ['nullable', 'string', 'max:255'],
+            'address.county' => ['nullable', 'string', 'max:255'],
+            'address.postcode' => ['required_with:address', 'string', 'max:12'],
+            'address.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'address.longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
@@ -45,6 +55,10 @@ class RegisteredUserController extends Controller
             ]);
 
             $this->createProfile($user, $type, $validated);
+
+            if (! empty($validated['address'])) {
+                $user->rememberAddress($validated['address']);
+            }
 
             return $user;
         });
@@ -70,17 +84,14 @@ class RegisteredUserController extends Controller
         match ($type) {
             AccountType::Customer => $user->customer()->create([
                 'phone' => $input['phone'] ?? null,
-                'address' => $input['address'] ?? null,
             ]),
             AccountType::Dealer => $user->dealer()->create([
                 'business_name' => $businessName,
                 'phone' => $input['phone'] ?? null,
-                'address' => $input['address'] ?? null,
             ]),
             AccountType::Garage => $user->garage()->create([
                 'business_name' => $businessName,
                 'phone' => $input['phone'] ?? null,
-                'address' => $input['address'] ?? null,
             ]),
             AccountType::Admin => null,
         };

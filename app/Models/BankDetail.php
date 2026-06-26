@@ -21,8 +21,8 @@ class BankDetail extends Model
         ];
     }
 
-    public function user(): BelongsTo
+    public function agreement(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Agreement::class);
     }
 }

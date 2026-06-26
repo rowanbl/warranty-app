@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AddressController;
 use App\Http\Controllers\Auth\AgreementLoginController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailLoginController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\CoverController;
 use App\Http\Controllers\Dealer\CustomerController;
 use App\Http\Controllers\DemoContentController;
+use App\Http\Controllers\FuelStationsController;
 use App\Http\Controllers\VehicleLookupController;
 use App\Http\Controllers\WarrantyController;
 use Illuminate\Support\Facades\Route;
@@ -56,7 +58,14 @@ Route::post('/diagnosis', [DemoContentController::class, 'diagnosis']);
 Route::post('/sanity-check', [DemoContentController::class, 'sanityCheck']);
 Route::post('/bookings', [DemoContentController::class, 'createBooking']);
 Route::get('/repair-timeline', [DemoContentController::class, 'repairTimeline']);
-Route::get('/fuel-stations', [DemoContentController::class, 'fuelStations']);
+
+// Live fuel prices around a point (Fuel Finder open data). Public + throttled:
+// it hits an external feed and geocoder.
+Route::get('/fuel-stations', [FuelStationsController::class, 'index'])->middleware('throttle:60,1');
+
+// Address autocomplete, shared by customer and dealer forms.
+Route::get('/address/search', [AddressController::class, 'search'])->middleware('throttle:60,1');
+Route::get('/address/retrieve', [AddressController::class, 'retrieve'])->middleware('throttle:60,1');
 Route::get('/admin/kpis', [DemoContentController::class, 'kpis']);
 Route::get('/admin/claims', [DemoContentController::class, 'claims']);
 

@@ -17,6 +17,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('vehicle_id')->nullable()->constrained()->nullOnDelete();
+            // The address this agreement is for. The user may hold several.
+            $table->foreignId('address_id')->nullable()->constrained()->nullOnDelete();
             $table->string('agreement_number')->unique();
             $table->string('tier');
             $table->string('status')->default('active');
