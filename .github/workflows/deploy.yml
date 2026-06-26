@@ -1,0 +1,32 @@
+name: Deploy
+
+# Runs ONLY after the CI workflow finishes successfully on main — i.e. on a merge
+# into main, never on a pull request. PRs only ever show the CI checks.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    # Only deploy if CI actually passed (skips a red CI run).
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Queue deploys; never run two at once or cancel one mid-flight.
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Trust the server host key
+        run: ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+      # The server pulls + builds + migrates itself — this just kicks it off.
+      - name: Run the deploy script over SSH
+        run: |
+          ssh -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "cd '${{ secrets.DEPLOY_PATH }}' && bash deploy/deploy.sh"

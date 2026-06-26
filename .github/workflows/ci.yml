@@ -1,11 +1,16 @@
-name: CI & Deploy
+name: CI
 
+# Checks only — runs on every PR (and on pushes to main). Deployment is a separate
+# workflow (deploy.yml) that runs only after this one succeeds on main, so it never
+# appears on PR checks.
+#
 # Assumes the repo root is this Laravel app. If you commit the whole monorepo,
 # move .github/ to the repo root and add a `defaults.run.working-directory`.
 #
-# Runners are WarpBuild (cheaper than GitHub-hosted). The label below must match
-# a runner you enabled in your WarpBuild dashboard — bump "-2x" to "-4x"/"-8x" for
-# faster parallel tests. To fall back to GitHub-hosted, use `ubuntu-latest`.
+# Runs on GitHub-hosted runners (ubuntu-latest). The free tier covers ~2,000
+# private-repo minutes/month, and these jobs are short, so it should stay free for
+# a solo project. If you later want faster/cheaper compute, swap `runs-on` for a
+# self-hosted runner or a drop-in provider.
 
 on:
   pull_request:
@@ -19,13 +24,13 @@ concurrency:
 jobs:
   test:
     name: PHP tests
-    runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          coverage: none
+          coverage: pcov   # fast coverage driver
       - uses: actions/cache@v4
         with:
           path: ~/.cache/composer/files
@@ -34,11 +39,13 @@ jobs:
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: cp .env.example .env && php artisan key:generate
       # Parallel + the in-memory sqlite already in phpunit.xml: fast and cheap.
-      - run: php artisan test --parallel
+      # The coverage table prints at the end. Once you've seen your %, turn it into
+      # a gate by appending e.g. `--min=75` (the job then fails below that).
+      - run: php artisan test --parallel --coverage
 
   frontend:
     name: Frontend build & types
-    runs-on: warp-ubuntu-latest-x64-2x
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -49,24 +56,30 @@ jobs:
       - run: npm run type-check
       - run: npm run build
 
-  deploy:
-    name: Deploy to production
-    needs: [test, frontend]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: warp-ubuntu-latest-x64-2x
-    # Queue deploys; never run two at once or cancel one mid-flight.
-    concurrency:
-      group: production-deploy
-      cancel-in-progress: false
+  mutation:
+    name: Mutation testing
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    # Report-only for now: it annotates the PR but never blocks merge. Once you're
+    # happy with the score, drop continue-on-error and add `--min-msi=NN`.
+    continue-on-error: true
     steps:
-      - name: Start SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
+      - uses: actions/checkout@v4
         with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
-      - name: Trust the server host key
-        run: ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
-      # The server pulls + builds + migrates itself — this just kicks it off.
-      - name: Run the deploy script over SSH
-        run: |
-          ssh -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "cd '${{ secrets.DEPLOY_PATH }}' && bash deploy/deploy.sh"
+          fetch-depth: 0   # Infection needs history to diff against the base
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: pcov
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate
+      # Only mutate the lines this PR changed — fast, cheap, and won't error when a
+      # PR touches no app/ code.
+      - run: |
+          vendor/bin/infection \
+            --git-diff-lines \
+            --git-diff-base=origin/${{ github.base_ref }} \
+            --threads=max \
+            --no-progress \
+            --logger-github \
+            --ignore-msi-with-no-mutations

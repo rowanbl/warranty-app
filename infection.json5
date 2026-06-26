@@ -1,0 +1,14 @@
+{
+    // Mutation testing config. Infection mutates app/ and checks your tests catch
+    // the change. On PRs we only mutate the lines you changed (see ci.yml), so it
+    // stays fast and cheap. Raise minMsi once you know your score.
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "app"
+        ]
+    },
+    "mutators": {
+        "@default": true
+    }
+}

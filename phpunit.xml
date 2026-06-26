@@ -26,6 +26,16 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
+        <!-- Vehicle lookup: real hostnames + dummy creds, so the Http::fake()
+             patterns in tests match. Otherwise CI's empty config builds scheme-less
+             URLs that slip past the fakes and try to hit the network. -->
+        <env name="FREE_VRMVIN_API_URL" value="https://login.microsoftonline.com/test/oauth2/v2.0/token"/>
+        <env name="FREE_VRM_DATA_URL" value="https://history.mot.api.gov.uk/v1/trade/vehicles/registration/"/>
+        <env name="FREE_VRMVIN_CLIENT_ID" value="test"/>
+        <env name="FREE_VRMVIN_CLIENT_SECRET" value="test"/>
+        <env name="FREE_VRMVIN_SCOPE" value="test"/>
+        <env name="FREE_VRMVIN_API_KEY" value="test"/>
+        <env name="DVLA_X_API_KEY" value="test"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
