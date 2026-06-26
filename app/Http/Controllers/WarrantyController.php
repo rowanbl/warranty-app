@@ -3,26 +3,39 @@
 namespace App\Http\Controllers;
 
 use App\Services\Vehicle\VehicleLookupService;
+use App\Support\WarrantyPlan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class WarrantyController extends Controller
 {
     /**
-     * Price the warranty for a specific car. Looks the reg up so the price can
-     * depend on the make/model (same for every car today). Returns the term
-     * options: monthly per term, and the upfront price + saving for each.
+     * Price the warranty for a specific car. Looks the reg up to find the car's
+     * age and mileage, picks the Warranty Wise plan it qualifies for, and returns
+     * the term options. A car outside every plan comes back `eligible: false` so
+     * the app can offer a custom/classic-car route instead.
      */
     public function quote(Request $request, VehicleLookupService $lookup): JsonResponse
     {
-        // Mileage comes through so pricing can vary by it later. For now the
-        // prices are the same, but the make/model and mileage are all here.
         $validated = $request->validate([
             'registration' => ['required', 'string', 'max:10'],
             'mileage' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $vehicle = $lookup->lookup($validated['registration']);
+        $mileage = $validated['mileage'] ?? $vehicle?->mileage;
+        $plan = WarrantyPlan::resolve($vehicle?->year, $mileage);
+
+        $base = [
+            'registration' => strtoupper(str_replace(' ', '', $validated['registration'])),
+            'make' => $vehicle?->make,
+            'model' => $vehicle?->model,
+        ];
+
+        if ($plan === null) {
+            // Too old or too many miles (or we couldn't read the car).
+            return response()->json([...$base, 'eligible' => false]);
+        }
 
         $discount = config('warranty.upfront_discount');
 
@@ -38,9 +51,9 @@ class WarrantyController extends Controller
         }, config('warranty.terms'));
 
         return response()->json([
-            'registration' => strtoupper(str_replace(' ', '', $validated['registration'])),
-            'make' => $vehicle?->make,
-            'model' => $vehicle?->model,
+            ...$base,
+            'eligible' => true,
+            'tier' => $plan['tier'],
             'terms' => $terms,
         ]);
     }
@@ -64,7 +77,7 @@ class WarrantyController extends Controller
 
         return response()->json([
             'agreementNumber' => $formatted,
-            'tier' => ucfirst($agreement->tier->value),
+            'tier' => $agreement->tier,
             'isActive' => $agreement->status === 'active',
             'startDate' => $agreement->start_date->toDateString(),
             'expiryDate' => $agreement->expiry_date->toDateString(),

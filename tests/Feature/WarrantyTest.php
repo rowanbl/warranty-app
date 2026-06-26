@@ -22,7 +22,7 @@ class WarrantyTest extends TestCase
         $this->actingAs($user)->getJson('/api/warranty')
             ->assertOk()
             ->assertJsonPath('agreementNumber', 'WW-4471-228900')
-            ->assertJsonPath('tier', 'Gold')
+            ->assertJsonPath('tier', '10/100')
             ->assertJsonStructure(['agreementNumber', 'tier', 'isActive', 'startDate', 'expiryDate', 'claimLimit', 'monthlyPrice']);
     }
 
@@ -42,23 +42,25 @@ class WarrantyTest extends TestCase
         Http::fake([
             'login.microsoftonline.com/*' => Http::response(['access_token' => 'fake']),
             'history.mot.api.gov.uk/*' => Http::response(['registration' => 'LV68KXR', 'make' => 'BMW']),
-            'driver-vehicle-licensing.api.gov.uk/*' => Http::response(['make' => 'BMW']),
+            'driver-vehicle-licensing.api.gov.uk/*' => Http::response(['make' => 'BMW', 'yearOfManufacture' => 2020]),
         ]);
 
         $dealer = User::factory()->type(AccountType::Dealer)->create();
 
         $this->actingAs($dealer)->postJson('/api/customers', [
             'customer' => ['name' => 'John Doe', 'email' => 'john@email.test'],
-            'vehicle' => ['registration' => 'LV68KXR'],
+            'vehicle' => ['registration' => 'LV68KXR', 'mileage' => 30000],
             'warranty' => ['term_months' => 36, 'monthly' => 39.99],
             'bank' => ['account_name' => 'J Doe', 'sort_code' => '00-00-00', 'account_number' => '12345678'],
         ])->assertCreated();
 
         $customer = User::whereEmail('john@email.test')->firstOrFail();
 
+        // 2020 car (~6 yrs) with 30k miles → the 06/60 plan.
         $this->assertDatabaseHas('agreements', [
             'user_id' => $customer->id,
             'monthly_price' => 39.99,
+            'tier' => '06/60',
         ]);
     }
 }

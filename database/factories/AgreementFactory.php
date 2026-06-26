@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\WarrantyTier;
 use App\Models\Agreement;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -21,7 +20,7 @@ class AgreementFactory extends Factory
             'user_id' => User::factory(),
             'vehicle_id' => null,
             'agreement_number' => 'WW-'.fake()->unique()->numerify('####-#####'),
-            'tier' => WarrantyTier::Gold,
+            'tier' => '10/100',
             'status' => 'active',
             'start_date' => now()->subYear()->toDateString(),
             'expiry_date' => now()->addYear()->toDateString(),
