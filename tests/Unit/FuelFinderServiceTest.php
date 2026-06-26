@@ -98,7 +98,7 @@ class FuelFinderServiceTest extends TestCase
 
         Http::fake([
             'api.fuelfinder.service.gov.uk/api/v1/oauth/*' => Http::response(['access_token' => 'fake-token']),
-            'api.fuelfinder.service.gov.uk/api/v1/pfs/*' => Http::response(['stations' => self::STATIONS]),
+            'api.fuelfinder.service.gov.uk/v1/prices/*' => Http::response(['stations' => self::STATIONS]),
         ]);
     }
 

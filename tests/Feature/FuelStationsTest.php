@@ -106,7 +106,7 @@ class FuelStationsTest extends TestCase
     {
         Http::fake([
             'api.fuelfinder.service.gov.uk/api/v1/oauth/*' => Http::response(['access_token' => 'fake-token']),
-            'api.fuelfinder.service.gov.uk/api/v1/pfs/*' => Http::response(['stations' => [
+            'api.fuelfinder.service.gov.uk/v1/prices/*' => Http::response(['stations' => [
                 ['site_id' => 'ASDA-BB11', 'brand' => 'Asda', 'address' => 'Princess Way, Burnley', 'postcode' => 'BB11 1BD',
                     'location' => ['latitude' => 53.7889, 'longitude' => -2.2410],
                     'prices' => ['E5' => 142.7, 'E10' => 132.7, 'B7' => 138.9, 'SDV' => 148.9]],

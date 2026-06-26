@@ -185,6 +185,7 @@ class FuelFinderService
             'grant_type' => 'client_credentials',
             'client_id' => $clientId,
             'client_secret' => $clientSecret,
+            'scope' => config('fuel.scope'),
         ]);
 
         return $response->successful() ? $response->json('access_token') : null;

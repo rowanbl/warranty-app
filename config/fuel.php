@@ -10,9 +10,10 @@
 // without a code change.
 return [
     'token_url' => env('FUEL_FINDER_TOKEN_URL', 'https://api.fuelfinder.service.gov.uk/api/v1/oauth/generate_access_token'),
-    'feed_url' => env('FUEL_FINDER_FEED_URL', 'https://api.fuelfinder.service.gov.uk/api/v1/pfs/fuel-prices'),
+    'feed_url' => env('FUEL_FINDER_FEED_URL', 'https://api.fuelfinder.service.gov.uk/v1/prices/'),
     'client_id' => env('FUEL_FINDER_CLIENT_ID', ''),
     'client_secret' => env('FUEL_FINDER_CLIENT_SECRET', ''),
+    'scope' => env('FUEL_FINDER_SCOPE', 'fuelfinder.read'),
 
     // How far out to look, and the most stations we'll ever return, so a wide
     // radius can't flood the app.
