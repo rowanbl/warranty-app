@@ -2,16 +2,20 @@
 
 namespace Tests\Unit;
 
+use App\Models\FuelStation;
 use App\Services\Fuel\FuelFinderService;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The service is driven by the live Fuel Finder API, faked here as a cluster of
- * forecourts around Burnley. We search from the town centre.
+ * The service reads the ingested `fuel_stations` table. We seed a cluster of
+ * Burnley-area forecourts (prices in the feed's grade codes) and search from the
+ * town centre.
  */
 class FuelFinderServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     private const BURNLEY_LAT = 53.7890;
 
     private const BURNLEY_LNG = -2.2450;
@@ -19,7 +23,7 @@ class FuelFinderServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->fakeFuelApi();
+        $this->seedStations();
     }
 
     public function test_it_returns_stations_with_a_distance_and_all_grades(): void
@@ -31,6 +35,7 @@ class FuelFinderServiceTest extends TestCase
         $first = $stations[0];
         $this->assertArrayHasKey('distance_miles', $first);
         $this->assertArrayHasKey('prices', $first);
+        // Prices come back in the app's grade codes, not the feed's.
         $this->assertArrayHasKey('E10', $first['prices']);
         $this->assertArrayHasKey('B7', $first['prices']);
     }
@@ -80,9 +85,9 @@ class FuelFinderServiceTest extends TestCase
         $this->assertSame($cheapestPrice, reset($flagged)['prices']['E10']);
     }
 
-    public function test_it_returns_nothing_when_the_credentials_are_missing(): void
+    public function test_an_empty_table_returns_nothing(): void
     {
-        config(['fuel.client_id' => '', 'fuel.client_secret' => '']);
+        FuelStation::query()->delete();
 
         $this->assertSame([], $this->finder()->near(self::BURNLEY_LAT, self::BURNLEY_LNG, 5));
     }
@@ -92,32 +97,26 @@ class FuelFinderServiceTest extends TestCase
         return new FuelFinderService;
     }
 
-    private function fakeFuelApi(): void
+    private function seedStations(): void
     {
-        config(['fuel.client_id' => 'id', 'fuel.client_secret' => 'secret']);
+        $stations = [
+            ['Asda', 53.7889, -2.2410, ['E5' => 142.7, 'E10' => 132.7, 'B7_STANDARD' => 138.9, 'B7_PREMIUM' => 148.9]],
+            ["Sainsbury's", 53.7935, -2.2475, ['E5' => 144.9, 'E10' => 134.9, 'B7_STANDARD' => 141.7, 'B7_PREMIUM' => 151.7]],
+            ['BP', 53.8021, -2.2308, ['E5' => 152.9, 'E10' => 142.9, 'B7_STANDARD' => 149.9, 'B7_PREMIUM' => 159.9]],
+            ['Tesco', 53.8104, -2.2521, ['E5' => 143.9, 'E10' => 133.9, 'B7_STANDARD' => 139.7, 'B7_PREMIUM' => 149.7]],
+            ['Shell', 53.7782, -2.2689, ['E5' => 151.9, 'E10' => 141.9, 'B7_STANDARD' => 148.9, 'B7_PREMIUM' => 158.9]],
+        ];
 
-        Http::fake([
-            'api.fuelfinder.service.gov.uk/api/v1/oauth/*' => Http::response(['access_token' => 'fake-token']),
-            'api.fuelfinder.service.gov.uk/v1/prices/*' => Http::response(['stations' => self::STATIONS]),
-        ]);
+        foreach ($stations as [$name, $lat, $lng, $prices]) {
+            FuelStation::create([
+                'node_id' => strtolower($name).'-bb',
+                'trading_name' => $name,
+                'latitude' => $lat,
+                'longitude' => $lng,
+                'geocoded_at' => now(),
+                'prices' => $prices,
+                'prices_updated_at' => now(),
+            ]);
+        }
     }
-
-    // A real cluster of Burnley-area forecourts in the scheme feed shape.
-    private const STATIONS = [
-        ['site_id' => 'ASDA-BB11', 'brand' => 'Asda', 'address' => 'Princess Way, Burnley', 'postcode' => 'BB11 1BD',
-            'location' => ['latitude' => 53.7889, 'longitude' => -2.2410],
-            'prices' => ['E5' => 142.7, 'E10' => 132.7, 'B7' => 138.9, 'SDV' => 148.9]],
-        ['site_id' => 'SAINS-BB11', 'brand' => "Sainsbury's", 'address' => 'Centenary Way, Burnley', 'postcode' => 'BB11 1BS',
-            'location' => ['latitude' => 53.7935, 'longitude' => -2.2475],
-            'prices' => ['E5' => 144.9, 'E10' => 134.9, 'B7' => 141.7, 'SDV' => 151.7]],
-        ['site_id' => 'BP-BB10', 'brand' => 'BP', 'address' => 'Burnley Road, Burnley', 'postcode' => 'BB10 1JZ',
-            'location' => ['latitude' => 53.8021, 'longitude' => -2.2308],
-            'prices' => ['E5' => 152.9, 'E10' => 142.9, 'B7' => 149.9, 'SDV' => 159.9]],
-        ['site_id' => 'TESCO-BB12', 'brand' => 'Tesco', 'address' => 'Barden Lane, Burnley', 'postcode' => 'BB10 1JR',
-            'location' => ['latitude' => 53.8104, 'longitude' => -2.2521],
-            'prices' => ['E5' => 143.9, 'E10' => 133.9, 'B7' => 139.7, 'SDV' => 149.7]],
-        ['site_id' => 'SHELL-BB11', 'brand' => 'Shell', 'address' => 'Accrington Road, Burnley', 'postcode' => 'BB11 5EL',
-            'location' => ['latitude' => 53.7782, 'longitude' => -2.2689],
-            'prices' => ['E5' => 151.9, 'E10' => 141.9, 'B7' => 148.9, 'SDV' => 158.9]],
-    ];
 }

@@ -2,31 +2,42 @@
 
 namespace App\Services\Fuel;
 
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
+use App\Models\FuelStation;
 
 /**
- * Finds nearby fuel stations and their live prices from the government Fuel
- * Finder open-data API (Motor Fuel Price (Open Data) Regulations 2025).
+ * Finds nearby fuel stations and their prices. The data comes from our own table,
+ * filled on a schedule by the Fuel Finder ingest (see FuelIngestService), since
+ * the live feed has no location and pages in the thousands. We keep the stations
+ * within the chosen radius, work out how far each one is, and flag the cheapest
+ * for the grade we're asked about.
  *
- * Access is OAuth client-credentials: we swap the client id + secret for a
- * short-lived Bearer token, then pull the feed of every registered forecourt.
- * We keep the stations within the chosen radius, work out how far each one is,
- * and flag the cheapest for the grade we're asked about.
+ * The app asks in its own grade codes (E5, E10, B7, SDV). The feed uses different
+ * names, so we translate, and hand prices back keyed by the app's codes so the
+ * client needs no change.
  */
 class FuelFinderService
 {
     private const EARTH_RADIUS_MILES = 3958.8;
 
+    // Roughly the miles in one degree of latitude, for the bounding box. Good
+    // enough to pre-filter before the exact haversine check.
+    private const MILES_PER_DEGREE = 69.0;
+
     // The standard fuel grade. We flag the cheapest and sort by price against
     // whichever grade the caller asks for, defaulting to standard unleaded.
     public const DEFAULT_GRADE = 'E10';
 
-    // Why the feed came back empty, if it did. Stays null on a clean run. The
-    // controller surfaces it in the response while the app is in debug, so an
-    // empty result can be told apart from a feed that's down or misconfigured.
+    // The app's grade codes mapped to the feed's. The feed splits diesel into
+    // standard and premium, which the app calls B7 and SDV.
+    private const GRADE_CODES = [
+        'E5' => 'E5',
+        'E10' => 'E10',
+        'B7' => 'B7_STANDARD',
+        'SDV' => 'B7_PREMIUM',
+    ];
+
+    // Why an empty result is empty, if it is. Stays null on a clean run. The
+    // controller surfaces it in the response while the app is in debug.
     public ?string $lastError = null;
 
     /**
@@ -39,51 +50,76 @@ class FuelFinderService
     {
         $stations = $this->withinRadius($latitude, $longitude, $radiusMiles);
 
+        if ($stations === [] && ! FuelStation::whereNotNull('latitude')->exists()) {
+            $this->lastError = 'no fuel stations have been ingested yet (run php artisan fuel:ingest)';
+        }
+
         $stations = $this->sort($stations, $sort, $grade);
         $stations = $this->flagCheapest($stations, $grade);
 
-        return array_slice($stations, 0, config('fuel.max_results'));
+        return array_slice($stations, 0, (int) config('fuel.max_results'));
     }
 
     /**
-     * Every station in the feed, mapped to the app's shape with its distance
-     * from the given point, filtered to those inside the radius.
+     * The geocoded stations inside the radius, mapped to the app's shape with
+     * their distance. A bounding box does the cheap pre-filter in the database,
+     * then the exact haversine trims the corners off that box.
      *
      * @return array<int, array<string, mixed>>
      */
     private function withinRadius(float $latitude, float $longitude, float $radiusMiles): array
     {
+        $latDelta = $radiusMiles / self::MILES_PER_DEGREE;
+        // Longitude lines bunch up towards the poles, so widen by latitude.
+        $lngDelta = $radiusMiles / max(0.1, self::MILES_PER_DEGREE * cos(deg2rad($latitude)));
+
+        $candidates = FuelStation::whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
+            ->whereBetween('longitude', [$longitude - $lngDelta, $longitude + $lngDelta])
+            ->get();
+
         $near = [];
 
-        foreach ($this->feed() as $station) {
-            $location = $station['location'] ?? [];
-            $stationLat = $location['latitude'] ?? null;
-            $stationLng = $location['longitude'] ?? null;
-
-            if ($stationLat === null || $stationLng === null) {
-                continue;
-            }
-
-            $distance = $this->distanceMiles($latitude, $longitude, (float) $stationLat, (float) $stationLng);
+        foreach ($candidates as $station) {
+            $distance = $this->distanceMiles($latitude, $longitude, $station->latitude, $station->longitude);
 
             if ($distance > $radiusMiles) {
                 continue;
             }
 
             $near[] = [
-                'site_id' => $station['site_id'] ?? null,
-                'brand' => $station['brand'] ?? null,
-                'address' => $station['address'] ?? null,
-                'postcode' => $station['postcode'] ?? null,
-                'latitude' => (float) $stationLat,
-                'longitude' => (float) $stationLng,
+                'site_id' => $station->node_id,
+                'brand' => $station->trading_name,
+                'address' => $station->trading_name,
+                'postcode' => $station->postcode,
                 'distance_miles' => round($distance, 1),
-                'prices' => $station['prices'] ?? [],
+                'prices' => $this->appPrices($station->prices ?? []),
                 'cheapest' => false,
             ];
         }
 
         return $near;
+    }
+
+    /**
+     * Translate stored feed prices to the app's grade codes, dropping any grade
+     * the forecourt doesn't sell.
+     *
+     * @param  array<string, mixed>  $feedPrices
+     * @return array<string, float>
+     */
+    private function appPrices(array $feedPrices): array
+    {
+        $prices = [];
+
+        foreach (self::GRADE_CODES as $appGrade => $feedCode) {
+            if (isset($feedPrices[$feedCode])) {
+                $prices[$appGrade] = (float) $feedPrices[$feedCode];
+            }
+        }
+
+        return $prices;
     }
 
     /**
@@ -148,99 +184,6 @@ class FuelFinderService
     private function priceFor(array $station, string $grade): float
     {
         return (float) ($station['prices'][$grade] ?? PHP_FLOAT_MAX);
-    }
-
-    /**
-     * The raw station list from the live feed, or an empty list when the API is
-     * unreachable or unconfigured (the app then just shows no stations rather
-     * than stale data).
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function feed(): array
-    {
-        $token = $this->accessToken();
-
-        if ($token === null) {
-            return [];
-        }
-
-        try {
-            $response = Http::withToken($token)
-                ->acceptJson()
-                ->get(config('fuel.feed_url'));
-        } catch (ConnectionException $e) {
-            // Host unreachable (DNS, egress, downtime). Show no stations rather
-            // than 500 the whole request.
-            return $this->fail('feed host unreachable: '.$e->getMessage());
-        }
-
-        if (! $response->successful()) {
-            return $this->fail('feed call failed: HTTP '.$response->status().' '.Str::limit($response->body(), 300));
-        }
-
-        return $response->json('stations') ?? [];
-    }
-
-    /**
-     * Swap the client id + secret for a short-lived Bearer token. Null when the
-     * credentials are missing or the token call fails.
-     */
-    private function accessToken(): ?string
-    {
-        $clientId = config('fuel.client_id');
-        $clientSecret = config('fuel.client_secret');
-
-        if (empty($clientId) || empty($clientSecret)) {
-            $this->fail('Fuel Finder credentials are not configured (client id/secret empty)');
-
-            return null;
-        }
-
-        try {
-            $response = Http::asForm()->post(config('fuel.token_url'), [
-                'grant_type' => 'client_credentials',
-                'client_id' => $clientId,
-                'client_secret' => $clientSecret,
-                'scope' => config('fuel.scope'),
-            ]);
-        } catch (ConnectionException $e) {
-            // Token host unreachable: no token, so the caller shows no stations.
-            $this->fail('token host unreachable: '.$e->getMessage());
-
-            return null;
-        }
-
-        if (! $response->successful()) {
-            $this->fail('token call failed: HTTP '.$response->status().' '.Str::limit($response->body(), 300));
-
-            return null;
-        }
-
-        $token = $response->json('access_token');
-
-        if (empty($token)) {
-            $this->fail('token call succeeded but returned no access_token');
-
-            return null;
-        }
-
-        return $token;
-    }
-
-    /**
-     * Record why the feed came back empty, and log it, then return an empty list
-     * for the caller to hand back. One place so the reason is captured the same
-     * way wherever it happens.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function fail(string $reason): array
-    {
-        $this->lastError = $reason;
-        Log::warning('Fuel Finder feed empty: '.$reason);
-
-        return [];
     }
 
     /**
