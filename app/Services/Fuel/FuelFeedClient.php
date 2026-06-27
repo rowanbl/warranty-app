@@ -19,6 +19,11 @@ use Illuminate\Support\Str;
  */
 class FuelFeedClient
 {
+    // The Fuel Finder edge (CloudFront) rejects requests with no User-Agent with
+    // a bare 403, and some hosts send an empty one by default. Set ours so we're
+    // never blocked, and so the gov scheme can see who's calling.
+    private const USER_AGENT = 'WarrantyWise/1.0 (+https://warrantyapp.online)';
+
     // Why the last pull came back empty, if it did. Null on a clean run.
     public ?string $lastError = null;
 
@@ -42,6 +47,7 @@ class FuelFeedClient
         for ($batch = 1; $batch <= $maxBatches; $batch++) {
             try {
                 $response = Http::withToken($token)
+                    ->withHeaders(['User-Agent' => self::USER_AGENT])
                     ->acceptJson()
                     ->get(config('fuel.feed_url'), ['batch-number' => $batch]);
             } catch (ConnectionException $e) {
@@ -85,12 +91,14 @@ class FuelFeedClient
         }
 
         try {
-            $response = Http::asForm()->post(config('fuel.token_url'), [
-                'grant_type' => 'client_credentials',
-                'client_id' => $clientId,
-                'client_secret' => $clientSecret,
-                'scope' => config('fuel.scope'),
-            ]);
+            $response = Http::asForm()
+                ->withHeaders(['User-Agent' => self::USER_AGENT])
+                ->post(config('fuel.token_url'), [
+                    'grant_type' => 'client_credentials',
+                    'client_id' => $clientId,
+                    'client_secret' => $clientSecret,
+                    'scope' => config('fuel.scope'),
+                ]);
         } catch (ConnectionException $e) {
             $this->fail('token host unreachable: '.$e->getMessage());
 

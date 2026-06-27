@@ -87,6 +87,21 @@ class IngestFuelPricesTest extends TestCase
         $this->assertSame(1, FuelStation::whereNotNull('geocoded_at')->count());
     }
 
+    public function test_feed_requests_carry_a_user_agent(): void
+    {
+        // The Fuel Finder edge 403s requests with no User-Agent, so every call
+        // to it must send one.
+        $this->fake([
+            ['node_id' => 'n1', 'trading_name' => 'ASDA', 'fuel_prices' => [['fuel_type' => 'E10', 'price' => 1]]],
+        ]);
+
+        $this->artisan('fuel:ingest')->assertSuccessful();
+
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), 'fuel-finder.service.gov.uk')
+            && $request->hasHeader('User-Agent')
+            && $request->header('User-Agent')[0] !== '');
+    }
+
     public function test_missing_credentials_ingest_nothing(): void
     {
         config(['fuel.client_id' => '', 'fuel.client_secret' => '']);
