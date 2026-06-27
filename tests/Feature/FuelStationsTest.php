@@ -2,25 +2,22 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Http\Client\ConnectionException;
+use App\Models\FuelStation;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class FuelStationsTest extends TestCase
 {
+    use RefreshDatabase;
+
     private const BURNLEY_LAT = 53.7890;
 
     private const BURNLEY_LNG = -2.2450;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        config(['fuel.client_id' => 'id', 'fuel.client_secret' => 'secret']);
-    }
-
     public function test_it_returns_stations_around_a_shared_location(): void
     {
-        $this->fakeFuelApi();
+        $this->seedStations();
 
         $response = $this->getJson('/api/fuel-stations?lat='.self::BURNLEY_LAT.'&lng='.self::BURNLEY_LNG);
 
@@ -37,9 +34,8 @@ class FuelStationsTest extends TestCase
 
     public function test_a_shared_location_does_not_call_the_geocoder(): void
     {
-        // The fuel API is faked; the geocoder is not. preventStrayRequests then
-        // proves a shared location never reaches Loqate.
-        $this->fakeFuelApi();
+        // A shared location is used as-is, so nothing should reach Loqate.
+        $this->seedStations();
         Http::preventStrayRequests();
 
         $this->getJson('/api/fuel-stations?lat='.self::BURNLEY_LAT.'&lng='.self::BURNLEY_LNG)
@@ -48,7 +44,6 @@ class FuelStationsTest extends TestCase
 
     public function test_it_geocodes_a_postcode_when_no_location_is_shared(): void
     {
-        $this->fakeFuelApi();
         Http::fake([
             'api.addressy.com/Geocoding/UK/*' => Http::response([
                 'Items' => [['Latitude' => self::BURNLEY_LAT, 'Longitude' => self::BURNLEY_LNG]],
@@ -62,7 +57,6 @@ class FuelStationsTest extends TestCase
 
     public function test_it_falls_back_to_geocoding_a_free_text_address(): void
     {
-        $this->fakeFuelApi();
         Http::fake([
             'api.addressy.com/Capture/Interactive/Find/*' => Http::response([
                 'Items' => [['Id' => 'GB|123', 'Type' => 'Address', 'Text' => '1 High St', 'Description' => 'Burnley']],
@@ -80,14 +74,9 @@ class FuelStationsTest extends TestCase
             ->assertJsonPath('origin.source', 'address');
     }
 
-    public function test_an_unreachable_feed_degrades_to_no_stations_not_a_500(): void
+    public function test_with_nothing_ingested_the_list_is_empty_not_an_error(): void
     {
-        // The Fuel Finder host being unreachable (DNS, egress, downtime) must
-        // come back as no stations, not crash the whole request with a 500.
-        Http::fake([
-            'api.fuelfinder.service.gov.uk/*' => fn () => throw new ConnectionException('Could not resolve host'),
-        ]);
-
+        // No stations in the table yet: a clean empty result, not a crash.
         $this->getJson('/api/fuel-stations?lat='.self::BURNLEY_LAT.'&lng='.self::BURNLEY_LNG)
             ->assertOk()
             ->assertJsonPath('stations', []);
@@ -96,9 +85,6 @@ class FuelStationsTest extends TestCase
     public function test_in_debug_it_explains_why_the_list_is_empty(): void
     {
         config(['app.debug' => true]);
-        Http::fake([
-            'api.fuelfinder.service.gov.uk/*' => fn () => throw new ConnectionException('Could not resolve host'),
-        ]);
 
         $this->getJson('/api/fuel-stations?lat='.self::BURNLEY_LAT.'&lng='.self::BURNLEY_LNG)
             ->assertOk()
@@ -129,18 +115,24 @@ class FuelStationsTest extends TestCase
             ->assertStatus(422);
     }
 
-    private function fakeFuelApi(): void
+    private function seedStations(): void
     {
-        Http::fake([
-            'api.fuelfinder.service.gov.uk/api/v1/oauth/*' => Http::response(['access_token' => 'fake-token']),
-            'api.fuelfinder.service.gov.uk/v1/prices/*' => Http::response(['stations' => [
-                ['site_id' => 'ASDA-BB11', 'brand' => 'Asda', 'address' => 'Princess Way, Burnley', 'postcode' => 'BB11 1BD',
-                    'location' => ['latitude' => 53.7889, 'longitude' => -2.2410],
-                    'prices' => ['E5' => 142.7, 'E10' => 132.7, 'B7' => 138.9, 'SDV' => 148.9]],
-                ['site_id' => 'BP-BB10', 'brand' => 'BP', 'address' => 'Burnley Road, Burnley', 'postcode' => 'BB10 1JZ',
-                    'location' => ['latitude' => 53.8021, 'longitude' => -2.2308],
-                    'prices' => ['E5' => 152.9, 'E10' => 142.9, 'B7' => 149.9, 'SDV' => 159.9]],
-            ]]),
-        ]);
+        $stations = [
+            ['Asda', 53.7889, -2.2410, ['E5' => 142.7, 'E10' => 132.7, 'B7_STANDARD' => 138.9, 'B7_PREMIUM' => 148.9]],
+            ["Sainsbury's", 53.7935, -2.2475, ['E5' => 144.9, 'E10' => 134.9, 'B7_STANDARD' => 141.7, 'B7_PREMIUM' => 151.7]],
+            ['BP', 53.8021, -2.2308, ['E5' => 152.9, 'E10' => 142.9, 'B7_STANDARD' => 149.9, 'B7_PREMIUM' => 159.9]],
+        ];
+
+        foreach ($stations as [$name, $lat, $lng, $prices]) {
+            FuelStation::create([
+                'node_id' => strtolower($name).'-bb',
+                'trading_name' => $name,
+                'latitude' => $lat,
+                'longitude' => $lng,
+                'geocoded_at' => now(),
+                'prices' => $prices,
+                'prices_updated_at' => now(),
+            ]);
+        }
     }
 }
